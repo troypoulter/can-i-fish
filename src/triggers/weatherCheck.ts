@@ -28,9 +28,15 @@ function processWeatherData(
 ): FishingWindow[] {
   const fishingWindows: FishingWindow[] = [];
 
+  logger.info("Starting to process weather data", {
+    totalDays: data.forecasts.tides.days.length,
+    conditions: FISHING_CONDITIONS,
+  });
+
   // Process each day
   for (const tideDay of data.forecasts.tides.days) {
     const date = tideDay.dateTime.split("T")[0];
+    logger.info("Processing day", { date });
 
     // Get corresponding weather, swell, and sunset data for this day
     const weatherDay = data.forecasts.weather.days.find(
@@ -43,13 +49,33 @@ function processWeatherData(
       (d) => d.dateTime.split("T")[0] === date
     );
 
-    if (!weatherDay || !swellDay || !sunsetDay) continue;
+    if (!weatherDay || !swellDay || !sunsetDay) {
+      logger.info("Missing data for day", {
+        date,
+        hasWeather: !!weatherDay,
+        hasSwell: !!swellDay,
+        hasSunset: !!sunsetDay,
+      });
+      continue;
+    }
 
     // Process each low tide for the day
     const lowTides = tideDay.entries.filter((entry) => entry.type === "low");
+    logger.info("Found low tides for day", {
+      date,
+      lowTidesCount: lowTides.length,
+    });
 
     for (const lowTide of lowTides) {
-      if (lowTide.height > FISHING_CONDITIONS.MAX_LOW_TIDE_HEIGHT) continue;
+      // Check tide height
+      if (lowTide.height > FISHING_CONDITIONS.MAX_LOW_TIDE_HEIGHT) {
+        logger.info("Skipping high tide", {
+          date,
+          tideHeight: lowTide.height,
+          maxAllowed: FISHING_CONDITIONS.MAX_LOW_TIDE_HEIGHT,
+        });
+        continue;
+      }
 
       const lowTideTime = new Date(lowTide.dateTime);
       const sunsetTime = new Date(sunsetDay.entries[0].setDateTime);
@@ -57,12 +83,27 @@ function processWeatherData(
       // Check if low tide is at least 2 hours before sunset
       const hoursBeforeSunset =
         (sunsetTime.getTime() - lowTideTime.getTime()) / (1000 * 60 * 60);
-      if (hoursBeforeSunset < FISHING_CONDITIONS.MIN_HOURS_BEFORE_SUNSET)
+
+      if (hoursBeforeSunset < FISHING_CONDITIONS.MIN_HOURS_BEFORE_SUNSET) {
+        logger.info("Skipping tide too close to sunset", {
+          date,
+          lowTideTime: lowTide.dateTime,
+          sunsetTime: sunsetDay.entries[0].setDateTime,
+          hoursBeforeSunset,
+          minRequired: FISHING_CONDITIONS.MIN_HOURS_BEFORE_SUNSET,
+        });
         continue;
+      }
 
       // Find closest swell reading to low tide time
       const closestSwellEntry = findClosestEntry(swellDay.entries, lowTideTime);
-      if (!closestSwellEntry) continue;
+      if (!closestSwellEntry) {
+        logger.info("No swell data found for time", {
+          date,
+          lowTideTime: lowTide.dateTime,
+        });
+        continue;
+      }
 
       // Check swell conditions
       if (
@@ -70,15 +111,42 @@ function processWeatherData(
         closestSwellEntry.period > FISHING_CONDITIONS.MAX_SWELL_PERIOD ||
         closestSwellEntry.directionText ===
           FISHING_CONDITIONS.EXCLUDED_SWELL_DIRECTION
-      )
+      ) {
+        logger.info("Skipping unfavorable swell conditions", {
+          date,
+          swellHeight: closestSwellEntry.height,
+          swellPeriod: closestSwellEntry.period,
+          swellDirection: closestSwellEntry.directionText,
+          maxHeight: FISHING_CONDITIONS.MAX_SWELL_HEIGHT,
+          maxPeriod: FISHING_CONDITIONS.MAX_SWELL_PERIOD,
+          excludedDirection: FISHING_CONDITIONS.EXCLUDED_SWELL_DIRECTION,
+        });
         continue;
+      }
 
       // Find closest weather reading to low tide time
       const closestWeatherEntry = findClosestEntry(
         weatherDay.entries,
         lowTideTime
       );
-      if (!closestWeatherEntry) continue;
+      if (!closestWeatherEntry) {
+        logger.info("No weather data found for time", {
+          date,
+          lowTideTime: lowTide.dateTime,
+        });
+        continue;
+      }
+
+      logger.info("Found suitable fishing window", {
+        date,
+        lowTideTime: lowTide.dateTime,
+        lowTideHeight: lowTide.height,
+        swellHeight: closestSwellEntry.height,
+        swellPeriod: closestSwellEntry.period,
+        swellDirection: closestSwellEntry.directionText,
+        weather: closestWeatherEntry.precis,
+        sunsetTime: sunsetDay.entries[0].setDateTime,
+      });
 
       // Add fishing window if all conditions are met
       fishingWindows.push({
@@ -93,6 +161,10 @@ function processWeatherData(
       });
     }
   }
+
+  logger.info("Completed processing weather data", {
+    totalFishingWindows: fishingWindows.length,
+  });
 
   return fishingWindows;
 }
