@@ -12,15 +12,37 @@ const FISHING_CONDITIONS = {
   MIN_HOURS_BEFORE_SUNSET: 2,
 };
 
+interface ConditionStatus {
+  passed: boolean;
+  value: number | string;
+  threshold?: number | string;
+  details?: string;
+}
+
+interface FishingMeasurement<T> {
+  value: T;
+  condition: ConditionStatus;
+}
+
 interface FishingWindow {
   date: string;
-  lowTideTime: string;
-  lowTideHeight: number;
-  swellHeight: number;
-  swellPeriod: number;
-  swellDirection: string;
+  lowTide: FishingMeasurement<{
+    time: string;
+    height: number;
+  }>;
+  swell: FishingMeasurement<{
+    height: number;
+    period: number;
+    direction: string;
+  }>;
+  timeBeforeSunset: FishingMeasurement<{
+    hours: number;
+    time: string;
+    sunsetTime: string;
+  }>;
   weather: string;
   sunsetTime: string;
+  overallScore: number; // Percentage of conditions that passed
 }
 
 function processWeatherData(
@@ -74,100 +96,130 @@ function processWeatherData(
     });
 
     for (const lowTide of lowTides) {
-      // Check tide height
-      if (lowTide.height > FISHING_CONDITIONS.MAX_LOW_TIDE_HEIGHT) {
-        logger.info(
-          `Low tide too high, ${lowTide.height}m > ${FISHING_CONDITIONS.MAX_LOW_TIDE_HEIGHT}m`,
-          {
-            date: dateStr,
-            tideHeight: lowTide.height,
-            maxAllowed: FISHING_CONDITIONS.MAX_LOW_TIDE_HEIGHT,
-          }
-        );
-        continue;
-      }
-
       const lowTideTime = new Date(lowTide.dateTime);
       const sunsetTime = new Date(sunsetDay.entries[0].setDateTime);
-
-      // Check if low tide is at least 2 hours before sunset
       const hoursBeforeSunset =
         (sunsetTime.getTime() - lowTideTime.getTime()) / (1000 * 60 * 60);
 
-      if (hoursBeforeSunset < FISHING_CONDITIONS.MIN_HOURS_BEFORE_SUNSET) {
-        logger.info("Skipping tide too close to sunset", {
-          date: dateStr,
-          lowTideTime: lowTide.dateTime,
-          sunsetTime: sunsetDay.entries[0].setDateTime,
-          hoursBeforeSunset,
-          minRequired: FISHING_CONDITIONS.MIN_HOURS_BEFORE_SUNSET,
-        });
-        continue;
-      }
-
-      // Find closest swell reading to low tide time
+      // Find closest swell and weather readings
       const closestSwellEntry = findClosestEntry(swellDay.entries, lowTideTime);
-      if (!closestSwellEntry) {
-        logger.info("No swell data found for time", {
-          date: dateStr,
-          lowTideTime: lowTide.dateTime,
-        });
-        continue;
-      }
-
-      // Check swell conditions
-      if (
-        closestSwellEntry.height > FISHING_CONDITIONS.MAX_SWELL_HEIGHT ||
-        closestSwellEntry.period > FISHING_CONDITIONS.MAX_SWELL_PERIOD ||
-        closestSwellEntry.directionText ===
-          FISHING_CONDITIONS.EXCLUDED_SWELL_DIRECTION
-      ) {
-        logger.info("Skipping unfavorable swell conditions", {
-          date: dateStr,
-          swellHeight: closestSwellEntry.height,
-          swellPeriod: closestSwellEntry.period,
-          swellDirection: closestSwellEntry.directionText,
-          maxHeight: FISHING_CONDITIONS.MAX_SWELL_HEIGHT,
-          maxPeriod: FISHING_CONDITIONS.MAX_SWELL_PERIOD,
-          excludedDirection: FISHING_CONDITIONS.EXCLUDED_SWELL_DIRECTION,
-        });
-        continue;
-      }
-
-      // Find closest weather reading to low tide time
       const closestWeatherEntry = findClosestEntry(
         weatherDay.entries,
         lowTideTime
       );
-      if (!closestWeatherEntry) {
-        logger.info("No weather data found for time", {
+
+      if (!closestSwellEntry || !closestWeatherEntry) {
+        logger.info("Missing swell or weather data", {
           date: dateStr,
-          lowTideTime: lowTide.dateTime,
+          hasSwell: !!closestSwellEntry,
+          hasWeather: !!closestWeatherEntry,
         });
         continue;
       }
 
-      logger.info("Found suitable fishing window", {
+      // Create measurements with conditions
+      const lowTideMeasurement: FishingMeasurement<{
+        time: string;
+        height: number;
+      }> = {
+        value: {
+          time: lowTide.dateTime,
+          height: lowTide.height,
+        },
+        condition: {
+          passed: lowTide.height <= FISHING_CONDITIONS.MAX_LOW_TIDE_HEIGHT,
+          value: lowTide.height,
+          threshold: FISHING_CONDITIONS.MAX_LOW_TIDE_HEIGHT,
+          details: "Maximum allowable low tide height",
+        },
+      };
+
+      const swellMeasurement: FishingMeasurement<{
+        height: number;
+        period: number;
+        direction: string;
+      }> = {
+        value: {
+          height: closestSwellEntry.height,
+          period: closestSwellEntry.period,
+          direction: closestSwellEntry.directionText,
+        },
+        condition: {
+          passed:
+            closestSwellEntry.height <= FISHING_CONDITIONS.MAX_SWELL_HEIGHT &&
+            closestSwellEntry.period <= FISHING_CONDITIONS.MAX_SWELL_PERIOD &&
+            closestSwellEntry.directionText !==
+              FISHING_CONDITIONS.EXCLUDED_SWELL_DIRECTION,
+          value: `${closestSwellEntry.height}m ${closestSwellEntry.period}s ${closestSwellEntry.directionText}`,
+          threshold: `≤${FISHING_CONDITIONS.MAX_SWELL_HEIGHT}m ≤${FISHING_CONDITIONS.MAX_SWELL_PERIOD}s !${FISHING_CONDITIONS.EXCLUDED_SWELL_DIRECTION}`,
+          details: "Swell conditions within acceptable ranges",
+        },
+      };
+
+      const timeBeforeSunsetMeasurement: FishingMeasurement<{
+        hours: number;
+        time: string;
+        sunsetTime: string;
+      }> = {
+        value: {
+          hours: hoursBeforeSunset,
+          time: lowTideTime.toLocaleTimeString("en-US", {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: true,
+          }),
+          sunsetTime: sunsetTime.toLocaleTimeString("en-US", {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: true,
+          }),
+        },
+        condition: {
+          passed:
+            hoursBeforeSunset >= FISHING_CONDITIONS.MIN_HOURS_BEFORE_SUNSET,
+          value: `${lowTideTime.toLocaleTimeString("en-US", {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: true,
+          })} (${hoursBeforeSunset.toFixed(1)}hrs before ${sunsetTime.toLocaleTimeString(
+            "en-US",
+            {
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: true,
+            }
+          )})`,
+          threshold: `≥${FISHING_CONDITIONS.MIN_HOURS_BEFORE_SUNSET} hours before sunset`,
+          details: "Minimum hours required before sunset",
+        },
+      };
+
+      // Calculate overall score
+      const conditions = [
+        lowTideMeasurement.condition,
+        swellMeasurement.condition,
+        timeBeforeSunsetMeasurement.condition,
+      ];
+      const passedConditions = conditions.filter((c) => c.passed).length;
+      const overallScore = (passedConditions / conditions.length) * 100;
+
+      logger.info("Processed fishing window", {
         date: dateStr,
-        lowTideTime: lowTide.dateTime,
-        lowTideHeight: lowTide.height,
-        swellHeight: closestSwellEntry.height,
-        swellPeriod: closestSwellEntry.period,
-        swellDirection: closestSwellEntry.directionText,
-        weather: closestWeatherEntry.precis,
-        sunsetTime: sunsetDay.entries[0].setDateTime,
+        lowTide: lowTideMeasurement,
+        swell: swellMeasurement,
+        timeBeforeSunset: timeBeforeSunsetMeasurement,
+        overallScore,
       });
 
-      // Add fishing window if all conditions are met
+      // Add fishing window with all measurements and conditions
       fishingWindows.push({
         date: dateStr,
-        lowTideTime: lowTide.dateTime,
-        lowTideHeight: lowTide.height,
-        swellHeight: closestSwellEntry.height,
-        swellPeriod: closestSwellEntry.period,
-        swellDirection: closestSwellEntry.directionText,
+        lowTide: lowTideMeasurement,
+        swell: swellMeasurement,
+        timeBeforeSunset: timeBeforeSunsetMeasurement,
         weather: closestWeatherEntry.precis,
         sunsetTime: sunsetDay.entries[0].setDateTime,
+        overallScore,
       });
     }
   }
