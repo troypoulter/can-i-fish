@@ -5,7 +5,7 @@ import type { z } from "zod";
 import { EmailService } from "../services/emailService";
 
 // Constants for fishing conditions
-const FISHING_CONDITIONS = {
+export const FISHING_CONDITIONS = {
   TIDE: {
     PASS_THRESHOLD: 0.4,
     PARTIAL_THRESHOLD: 0.6,

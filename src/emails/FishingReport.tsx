@@ -5,9 +5,11 @@ import {
   Container,
   Section,
   Text,
-  Hr,
+  Row,
+  Column,
 } from "@react-email/components";
 import type { FishingWindow } from "../triggers/weatherCheck";
+import { FISHING_CONDITIONS } from "../triggers/weatherCheck";
 import React from "react";
 
 const styles = {
@@ -24,57 +26,43 @@ const styles = {
     color: "#666",
     marginBottom: "24px",
   },
-  sectionTitle: {
-    fontSize: "20px",
-    fontWeight: "bold",
-    marginBottom: "16px",
-  },
-  windowCard: {
-    padding: "16px",
-    marginBottom: "16px",
-    borderRadius: "8px",
+  header: {
     backgroundColor: "#f8f9fa",
-    border: "1px solid #dee2e6",
-  },
-  dateTime: {
-    fontSize: "16px",
-    fontWeight: "bold",
-    marginBottom: "8px",
-  },
-  measurement: {
-    marginBottom: "4px",
-  },
-  statusBadge: {
-    padding: "4px 8px",
-    borderRadius: "4px",
+    padding: "8px",
     fontSize: "12px",
+    color: "#666",
     fontWeight: "bold",
-    display: "inline-block",
-    marginLeft: "8px",
   },
-  pass: {
-    backgroundColor: "#d4edda",
-    color: "#155724",
+  row: {
+    borderBottom: "1px solid #dee2e6",
+    padding: "8px 0",
   },
-  partial: {
-    backgroundColor: "#fff3cd",
-    color: "#856404",
+  dateColumn: {
+    width: "120px",
+    padding: "8px",
+    verticalAlign: "top",
   },
-  fail: {
-    backgroundColor: "#f8d7da",
-    color: "#721c24",
+  conditionColumn: {
+    padding: "8px",
+    verticalAlign: "top",
   },
-  noData: {
-    textAlign: "center" as const,
-    padding: "24px",
-    backgroundColor: "#f8f9fa",
-    borderRadius: "8px",
-    color: "#6c757d",
+  score: {
+    fontWeight: "bold",
+    marginLeft: "4px",
   },
   footer: {
     color: "#666",
     fontSize: "12px",
     marginTop: "24px",
+  },
+  conditionLabel: {
+    color: "#666",
+    width: "80px",
+    display: "inline-block",
+  },
+  conditionValue: {
+    display: "inline-block",
+    marginRight: "8px",
   },
 };
 
@@ -82,14 +70,11 @@ interface Props {
   windows: FishingWindow[];
 }
 
-const getStatusBadge = (status: "pass" | "partial" | "fail") => ({
-  ...styles.statusBadge,
-  ...(status === "pass"
-    ? styles.pass
-    : status === "partial"
-      ? styles.partial
-      : styles.fail),
-});
+const getStatusEmoji = (status: "pass" | "partial" | "fail") =>
+  status === "pass" ? "✅" : status === "partial" ? "⚠️" : "❌";
+
+const getScoreEmoji = (score: number) =>
+  score === 100 ? "✅" : score >= 50 ? "⚠️" : "❌";
 
 const formatDate = (dateStr: string) => {
   const date = new Date(dateStr);
@@ -109,12 +94,77 @@ const formatTime = (timeStr: string) => {
   });
 };
 
+const WindowCondition = ({
+  label,
+  value,
+  status,
+}: {
+  label: string;
+  value: string | number;
+  status: "pass" | "partial" | "fail";
+}) => (
+  <Text style={{ fontSize: "12px", margin: "2px 0" }}>
+    <span style={styles.conditionLabel}>{label}:</span>
+    <span style={styles.conditionValue}>
+      {getStatusEmoji(status)} {value}
+    </span>
+  </Text>
+);
+
+const ConditionsSummary = () => (
+  <Section
+    style={{
+      marginBottom: "24px",
+      backgroundColor: "#f8f9fa",
+      padding: "16px",
+      borderRadius: "8px",
+    }}
+  >
+    <Text style={{ fontSize: "14px", fontWeight: "bold", marginBottom: "8px" }}>
+      🎣 Fishing Conditions Guide:
+    </Text>
+    <Text style={{ fontSize: "12px", margin: "4px 0" }}>
+      • Tide: Optimal ≤{FISHING_CONDITIONS.TIDE.PASS_THRESHOLD}m, Acceptable ≤
+      {FISHING_CONDITIONS.TIDE.PARTIAL_THRESHOLD}m
+    </Text>
+    <Text style={{ fontSize: "12px", margin: "4px 0" }}>
+      • Swell Height: Optimal ≤{FISHING_CONDITIONS.SWELL.HEIGHT.PASS_THRESHOLD}
+      m, Acceptable ≤{FISHING_CONDITIONS.SWELL.HEIGHT.PARTIAL_THRESHOLD}m
+    </Text>
+    <Text style={{ fontSize: "12px", margin: "4px 0" }}>
+      • Swell Period: Optimal ≤{FISHING_CONDITIONS.SWELL.PERIOD.PASS_THRESHOLD}
+      s, Acceptable ≤{FISHING_CONDITIONS.SWELL.PERIOD.PARTIAL_THRESHOLD}s
+    </Text>
+    <Text style={{ fontSize: "12px", margin: "4px 0" }}>
+      • Swell Direction: Avoid {FISHING_CONDITIONS.SWELL.DIRECTION.FAIL},
+      Caution with{" "}
+      {FISHING_CONDITIONS.SWELL.DIRECTION.PARTIAL_FAIL.join(" or ")}
+    </Text>
+    <Text style={{ fontSize: "12px", margin: "4px 0" }}>
+      • Daylight: Must be after sunrise and at least{" "}
+      {FISHING_CONDITIONS.MIN_HOURS_BEFORE_SUNSET} hours before sunset
+    </Text>
+    <Text
+      style={{ fontSize: "12px", margin: "8px 0 0 0", fontStyle: "italic" }}
+    >
+      ✅ Optimal • ⚠️ Acceptable • ❌ Unsuitable
+    </Text>
+  </Section>
+);
+
 export default function FishingReport({ windows }: Props) {
-  const passed = windows.filter((w) => w.overallScore === 100);
-  const partial = windows.filter(
-    (w) => w.overallScore >= 50 && w.overallScore < 100
+  // Group windows by date
+  const windowsByDate = windows.reduce(
+    (acc, window) => {
+      const date = window.date;
+      if (!acc[date]) {
+        acc[date] = [];
+      }
+      acc[date].push(window);
+      return acc;
+    },
+    {} as Record<string, FishingWindow[]>
   );
-  const failed = windows.filter((w) => w.overallScore < 50);
 
   return (
     <Html>
@@ -126,198 +176,91 @@ export default function FishingReport({ windows }: Props) {
             Here's your latest fishing conditions report for Norah Head
           </Text>
 
-          <Section>
-            <Text style={styles.sectionTitle}>✅ Optimal Conditions</Text>
-            {passed.length > 0 ? (
-              passed.map((window) => (
-                <Section
-                  key={window.date + window.lowTide.value.time}
-                  style={styles.windowCard}
-                >
-                  <Text style={styles.dateTime}>
-                    {formatDate(window.date)} at{" "}
-                    {formatTime(window.lowTide.value.time)}
-                  </Text>
-                  <Text style={styles.measurement}>
-                    Tide: {window.lowTide.value.height}m
-                  </Text>
-                  <Text style={styles.measurement}>
-                    Swell: {window.swell.height.value}m{" "}
-                    {window.swell.period.value}s {window.swell.direction.value}
-                  </Text>
-                  <Text style={styles.measurement}>
-                    Daylight:{" "}
-                    {window.daylight.afterSunrise.value.hours.toFixed(1)}hrs
-                    after sunrise,{" "}
-                    {window.daylight.beforeSunset.value.hours.toFixed(1)}hrs
-                    before sunset
-                  </Text>
-                  <Text style={styles.measurement}>
-                    Weather: {window.weather}
-                  </Text>
-                </Section>
-              ))
-            ) : (
-              <Text style={styles.noData}>
-                No optimal fishing windows found for this period
-              </Text>
-            )}
-          </Section>
-
-          <Hr />
+          <ConditionsSummary />
 
           <Section>
-            <Text style={styles.sectionTitle}>⚠️ Partial Conditions</Text>
-            {partial.length > 0 ? (
-              partial.map((window) => (
-                <Section
-                  key={window.date + window.lowTide.value.time}
-                  style={styles.windowCard}
-                >
-                  <Text style={styles.dateTime}>
-                    {formatDate(window.date)} at{" "}
-                    {formatTime(window.lowTide.value.time)}
-                    <span style={styles.statusBadge}>
-                      {window.overallScore.toFixed(1)}%
-                    </span>
-                  </Text>
-                  <Text style={styles.measurement}>
-                    Tide: {window.lowTide.value.height}m
-                    <span
-                      style={getStatusBadge(window.lowTide.condition.passed)}
-                    >
-                      {window.lowTide.condition.passed}
-                    </span>
-                  </Text>
-                  <Text style={styles.measurement}>
-                    Swell Height: {window.swell.height.value}m
-                    <span
-                      style={getStatusBadge(
-                        window.swell.height.condition.passed
-                      )}
-                    >
-                      {window.swell.height.condition.passed}
-                    </span>
-                  </Text>
-                  <Text style={styles.measurement}>
-                    Swell Period: {window.swell.period.value}s
-                    <span
-                      style={getStatusBadge(
-                        window.swell.period.condition.passed
-                      )}
-                    >
-                      {window.swell.period.condition.passed}
-                    </span>
-                  </Text>
-                  <Text style={styles.measurement}>
-                    Swell Direction: {window.swell.direction.value}
-                    <span
-                      style={getStatusBadge(
-                        window.swell.direction.condition.passed
-                      )}
-                    >
-                      {window.swell.direction.condition.passed}
-                    </span>
-                  </Text>
-                  <Text style={styles.measurement}>
-                    After Sunrise:{" "}
-                    {window.daylight.afterSunrise.value.hours.toFixed(1)}hrs
-                    <span
-                      style={getStatusBadge(
-                        window.daylight.afterSunrise.condition.passed
-                      )}
-                    >
-                      {window.daylight.afterSunrise.condition.passed}
-                    </span>
-                  </Text>
-                  <Text style={styles.measurement}>
-                    Before Sunset:{" "}
-                    {window.daylight.beforeSunset.value.hours.toFixed(1)}hrs
-                    <span
-                      style={getStatusBadge(
-                        window.daylight.beforeSunset.condition.passed
-                      )}
-                    >
-                      {window.daylight.beforeSunset.condition.passed}
-                    </span>
-                  </Text>
-                </Section>
-              ))
-            ) : (
-              <Text style={styles.noData}>
-                No partial matches found for this period
-              </Text>
-            )}
-          </Section>
+            <Row style={styles.header}>
+              <Column style={styles.dateColumn}>Date</Column>
+              <Column style={styles.conditionColumn}>Low Tide Windows</Column>
+            </Row>
 
-          <Hr />
-
-          <Section>
-            <Text style={styles.sectionTitle}>❌ Unsuitable Conditions</Text>
-            {failed.length > 0 ? (
-              failed.map((window) => (
-                <Section
-                  key={window.date + window.lowTide.value.time}
-                  style={styles.windowCard}
-                >
-                  <Text style={styles.dateTime}>
-                    {formatDate(window.date)} at{" "}
-                    {formatTime(window.lowTide.value.time)}
-                    <span style={styles.statusBadge}>
-                      {window.overallScore.toFixed(1)}%
-                    </span>
+            {Object.entries(windowsByDate).map(([date, dayWindows]) => (
+              <Row key={date} style={styles.row}>
+                <Column style={styles.dateColumn}>
+                  <Text style={{ fontSize: "14px", fontWeight: "bold" }}>
+                    {formatDate(date)}
                   </Text>
-                  {window.lowTide.condition.passed === "fail" && (
-                    <Text style={styles.measurement}>
-                      <span style={styles.fail}>
-                        Tide: {window.lowTide.value.height}m
-                      </span>
-                    </Text>
-                  )}
-                  {window.swell.height.condition.passed === "fail" && (
-                    <Text style={styles.measurement}>
-                      <span style={styles.fail}>
-                        Swell Height: {window.swell.height.value}m
-                      </span>
-                    </Text>
-                  )}
-                  {window.swell.period.condition.passed === "fail" && (
-                    <Text style={styles.measurement}>
-                      <span style={styles.fail}>
-                        Swell Period: {window.swell.period.value}s
-                      </span>
-                    </Text>
-                  )}
-                  {window.swell.direction.condition.passed === "fail" && (
-                    <Text style={styles.measurement}>
-                      <span style={styles.fail}>
-                        Swell Direction: {window.swell.direction.value}
-                      </span>
-                    </Text>
-                  )}
-                  {window.daylight.afterSunrise.condition.passed === "fail" && (
-                    <Text style={styles.measurement}>
-                      <span style={styles.fail}>
-                        Before Sunrise:{" "}
-                        {window.daylight.afterSunrise.value.hours.toFixed(1)}hrs
-                      </span>
-                    </Text>
-                  )}
-                  {window.daylight.beforeSunset.condition.passed === "fail" && (
-                    <Text style={styles.measurement}>
-                      <span style={styles.fail}>
-                        After Sunset:{" "}
-                        {window.daylight.beforeSunset.value.hours.toFixed(1)}hrs
-                      </span>
-                    </Text>
-                  )}
-                </Section>
-              ))
-            ) : (
-              <Text style={styles.noData}>
-                No unsuitable conditions found for this period
-              </Text>
-            )}
+                </Column>
+                <Column style={styles.conditionColumn}>
+                  {dayWindows.map((window) => (
+                    <Section
+                      key={window.lowTide.value.time}
+                      style={{ marginBottom: "16px" }}
+                    >
+                      <Text
+                        style={{
+                          fontSize: "13px",
+                          fontWeight: "bold",
+                          marginBottom: "6px",
+                        }}
+                      >
+                        {getScoreEmoji(window.overallScore)}{" "}
+                        {formatTime(window.lowTide.value.time)} -{" "}
+                        <span style={styles.score}>
+                          {window.overallScore.toFixed(0)}%
+                        </span>
+                      </Text>
+
+                      <WindowCondition
+                        label="Tide"
+                        value={`${window.lowTide.value.height}m`}
+                        status={window.lowTide.condition.passed}
+                      />
+
+                      <WindowCondition
+                        label="Swell Height"
+                        value={`${window.swell.height.value}m`}
+                        status={window.swell.height.condition.passed}
+                      />
+                      <WindowCondition
+                        label="Swell Period"
+                        value={`${window.swell.period.value}s`}
+                        status={window.swell.period.condition.passed}
+                      />
+                      <WindowCondition
+                        label="Direction"
+                        value={window.swell.direction.value}
+                        status={window.swell.direction.condition.passed}
+                      />
+
+                      <WindowCondition
+                        label="Sunrise"
+                        value={`${window.daylight.afterSunrise.value.hours.toFixed(1)}hrs after`}
+                        status={window.daylight.afterSunrise.condition.passed}
+                      />
+                      <WindowCondition
+                        label="Sunset"
+                        value={`${window.daylight.beforeSunset.value.hours.toFixed(1)}hrs before`}
+                        status={window.daylight.beforeSunset.condition.passed}
+                      />
+
+                      <Text
+                        style={{
+                          fontSize: "12px",
+                          margin: "4px 0 0 0",
+                          color: "#666",
+                        }}
+                      >
+                        <span style={styles.conditionLabel}>Weather:</span>
+                        <span style={styles.conditionValue}>
+                          {window.weather}
+                        </span>
+                      </Text>
+                    </Section>
+                  ))}
+                </Column>
+              </Row>
+            ))}
           </Section>
 
           <Text style={styles.footer}>
