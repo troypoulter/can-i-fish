@@ -9,18 +9,21 @@
     "start": "node dist/index.js",
     "format": "biome format --write .",
     "lint": "biome lint .",
-    "check": "biome check --apply ."
+    "check": "biome check --apply .",
+    "trigger": "npx trigger.dev@latest dev"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@trigger.dev/sdk": "3.3.7",
     "dotenv": "^16.4.5",
     "ts-node": "^10.9.2",
     "zod": "^3.23.8"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
+    "@trigger.dev/build": "3.3.7",
     "@types/node": "^22.9.0",
     "typescript": "^5.6.3"
   }
