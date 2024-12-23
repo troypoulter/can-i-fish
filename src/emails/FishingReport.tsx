@@ -144,6 +144,11 @@ const ConditionsSummary = () => (
       • Daylight: Must be after sunrise and at least{" "}
       {FISHING_CONDITIONS.MIN_HOURS_BEFORE_SUNSET} hours before sunset
     </Text>
+    <Text style={{ fontSize: "12px", margin: "4px 0" }}>
+      • Weather: Best conditions are{" "}
+      {FISHING_CONDITIONS.WEATHER.PASS.join(", ")}, Acceptable conditions are{" "}
+      {FISHING_CONDITIONS.WEATHER.PARTIAL.join(", ")}
+    </Text>
     <Text
       style={{ fontSize: "12px", margin: "8px 0 0 0", fontStyle: "italic" }}
     >
@@ -151,6 +156,57 @@ const ConditionsSummary = () => (
     </Text>
   </Section>
 );
+
+const WindowsSummary = ({ windows }: { windows: FishingWindow[] }) => {
+  const optimal = windows.filter((w) => w.overallScore === 100);
+  const acceptable = windows.filter(
+    (w) => w.overallScore >= 50 && w.overallScore < 100
+  );
+  const unsuitable = windows.filter((w) => w.overallScore < 50);
+
+  return (
+    <Section
+      style={{
+        marginBottom: "24px",
+        backgroundColor: "#f0f8ff",
+        padding: "16px",
+        borderRadius: "8px",
+      }}
+    >
+      <Text
+        style={{ fontSize: "14px", fontWeight: "bold", marginBottom: "8px" }}
+      >
+        🎯 Quick Summary:
+      </Text>
+      <Text style={{ fontSize: "13px", margin: "4px 0" }}>
+        ✅ {optimal.length} Optimal Periods
+        {optimal.length > 0 && ":"}
+      </Text>
+      {optimal.length > 0 && (
+        <Text
+          style={{
+            fontSize: "12px",
+            margin: "4px 0 8px 16px",
+            color: "#2d5a27",
+          }}
+        >
+          {optimal
+            .map(
+              (w) =>
+                `${formatDate(w.date)} at ${formatTime(w.lowTide.value.time)}`
+            )
+            .join("\n")}
+        </Text>
+      )}
+      <Text style={{ fontSize: "13px", margin: "4px 0" }}>
+        ⚠️ {acceptable.length} Acceptable Periods
+      </Text>
+      <Text style={{ fontSize: "13px", margin: "4px 0" }}>
+        ❌ {unsuitable.length} Unsuitable Periods
+      </Text>
+    </Section>
+  );
+};
 
 export default function FishingReport({ windows }: Props) {
   // Group windows by date
@@ -175,6 +231,8 @@ export default function FishingReport({ windows }: Props) {
           <Text style={styles.subtitle}>
             Here's your latest fishing conditions report for Norah Head
           </Text>
+
+          <WindowsSummary windows={windows} />
 
           <ConditionsSummary />
 
@@ -244,18 +302,11 @@ export default function FishingReport({ windows }: Props) {
                         status={window.daylight.beforeSunset.condition.passed}
                       />
 
-                      <Text
-                        style={{
-                          fontSize: "12px",
-                          margin: "4px 0 0 0",
-                          color: "#666",
-                        }}
-                      >
-                        <span style={styles.conditionLabel}>Weather:</span>
-                        <span style={styles.conditionValue}>
-                          {window.weather}
-                        </span>
-                      </Text>
+                      <WindowCondition
+                        label="Weather"
+                        value={window.weather.value}
+                        status={window.weather.condition.passed}
+                      />
                     </Section>
                   ))}
                 </Column>

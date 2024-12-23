@@ -3,6 +3,42 @@ import { WillyWeatherService } from "../services/willyWeatherAPI";
 import type { LocationWeatherWithDetailsResponse } from "../services/types";
 import type { z } from "zod";
 import { EmailService } from "../services/emailService";
+import { z as zod } from "zod";
+
+// Weather precis code validation
+export const WeatherPrecisCode = zod.enum([
+  "fine",
+  "mostly-fine",
+  "high-cloud",
+  "partly-cloudy",
+  "mostly-cloudy",
+  "cloudy",
+  "overcast",
+  "shower-or-two",
+  "chance-shower-fine",
+  "chance-shower-cloud",
+  "drizzle",
+  "few-showers",
+  "showers-rain",
+  "heavy-showers-rain",
+  "chance-thunderstorm-fine",
+  "chance-thunderstorm-cloud",
+  "chance-thunderstorm-showers",
+  "thunderstorm",
+  "chance-snow-fine",
+  "chance-snow-cloud",
+  "snow-and-rain",
+  "light-snow",
+  "snow",
+  "heavy-snow",
+  "wind",
+  "frost",
+  "fog",
+  "hail",
+  "dust",
+]);
+
+export type WeatherPrecisCode = z.infer<typeof WeatherPrecisCode>;
 
 // Constants for fishing conditions
 export const FISHING_CONDITIONS = {
@@ -24,6 +60,24 @@ export const FISHING_CONDITIONS = {
       PARTIAL_FAIL: ["SSE", "ESE"],
     },
   },
+  WEATHER: {
+    // Clear, stable conditions ideal for fishing
+    PASS: [
+      "fine",
+      "mostly-fine",
+      "high-cloud",
+      "partly-cloudy",
+    ] as WeatherPrecisCode[],
+    // Light cloud or very light rain can still be okay
+    PARTIAL: [
+      "mostly-cloudy",
+      "cloudy",
+      "shower-or-two",
+      "chance-shower-fine",
+    ] as WeatherPrecisCode[],
+    // Everything else is considered unsuitable
+    // Heavy rain, storms, strong wind, etc.
+  },
   MIN_HOURS_BEFORE_SUNSET: 2,
   MIN_HOURS_AFTER_SUNRISE: 0,
 };
@@ -43,8 +97,8 @@ interface FishingMeasurement<T> {
 export interface FishingWindow {
   date: string;
   lowTide: FishingMeasurement<{
-    time: string;
     height: number;
+    time: string;
   }>;
   swell: {
     height: FishingMeasurement<number>;
@@ -63,7 +117,7 @@ export interface FishingWindow {
       sunsetTime: string;
     }>;
   };
-  weather: string;
+  weather: FishingMeasurement<string>;
   sunsetTime: string;
   overallScore: number;
 }
@@ -394,6 +448,24 @@ function processWeatherData(
         },
       };
 
+      const weatherMeasurement: FishingMeasurement<string> = {
+        value: closestWeatherEntry.precis,
+        condition: {
+          passed: FISHING_CONDITIONS.WEATHER.PASS.includes(
+            closestWeatherEntry.precisCode as WeatherPrecisCode
+          )
+            ? "pass"
+            : FISHING_CONDITIONS.WEATHER.PARTIAL.includes(
+                  closestWeatherEntry.precisCode as WeatherPrecisCode
+                )
+              ? "partial"
+              : "fail",
+          value: closestWeatherEntry.precis,
+          threshold: `Pass: ${FISHING_CONDITIONS.WEATHER.PASS.join(", ")}, Partial: ${FISHING_CONDITIONS.WEATHER.PARTIAL.join(", ")}`,
+          details: "Weather conditions suitable for fishing",
+        },
+      };
+
       // Calculate overall score with weighted conditions
       const conditions = [
         { condition: lowTideMeasurement.condition, weight: 1 },
@@ -402,6 +474,7 @@ function processWeatherData(
         { condition: swellMeasurement.direction.condition, weight: 1 },
         { condition: daylightMeasurement.afterSunrise.condition, weight: 1 },
         { condition: daylightMeasurement.beforeSunset.condition, weight: 1 },
+        { condition: weatherMeasurement.condition, weight: 1 },
       ];
 
       const totalWeight = conditions.reduce(
@@ -423,7 +496,7 @@ function processWeatherData(
         lowTide: lowTideMeasurement,
         swell: swellMeasurement as FishingWindow["swell"],
         daylight: daylightMeasurement as FishingWindow["daylight"],
-        weather: closestWeatherEntry.precis,
+        weather: weatherMeasurement,
         sunsetTime: sunsetDay.entries[0].setDateTime,
         overallScore,
       };

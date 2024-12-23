@@ -20,7 +20,7 @@ export class EmailService {
       const data = await this.resend.emails.send({
         from: "Can I Fish? <onboarding@resend.dev>",
         to: [to],
-        subject: "Norah Head Fishing Conditions Report",
+        subject: "Norah Head Fishing Report",
         react: FishingReport({ windows }) as ReactElement,
       });
 
