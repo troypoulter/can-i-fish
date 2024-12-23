@@ -68,7 +68,7 @@ function processWeatherData(
 
     // Process each low tide for the day
     const lowTides = tideDay.entries.filter((entry) => entry.type === "low");
-    logger.info("Found low tides for day", {
+    logger.info(`Found ${lowTides.length} low tides`, {
       date: dateStr,
       lowTidesCount: lowTides.length,
     });
@@ -76,11 +76,14 @@ function processWeatherData(
     for (const lowTide of lowTides) {
       // Check tide height
       if (lowTide.height > FISHING_CONDITIONS.MAX_LOW_TIDE_HEIGHT) {
-        logger.info("Skipping high tide", {
-          date: dateStr,
-          tideHeight: lowTide.height,
-          maxAllowed: FISHING_CONDITIONS.MAX_LOW_TIDE_HEIGHT,
-        });
+        logger.info(
+          `Low tide too high, ${lowTide.height}m > ${FISHING_CONDITIONS.MAX_LOW_TIDE_HEIGHT}m`,
+          {
+            date: dateStr,
+            tideHeight: lowTide.height,
+            maxAllowed: FISHING_CONDITIONS.MAX_LOW_TIDE_HEIGHT,
+          }
+        );
         continue;
       }
 
