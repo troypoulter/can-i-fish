@@ -56,8 +56,8 @@ export const FISHING_CONDITIONS = {
       PARTIAL_THRESHOLD: 8,
     },
     DIRECTION: {
-      FAIL: "SE",
-      PARTIAL_FAIL: ["SSE", "ESE"],
+      FAIL: ["SE", "SSE", "ESE"],
+      PARTIAL_FAIL: [], // No partial fails anymore
     },
   },
   WEATHER: {
@@ -359,17 +359,13 @@ function processWeatherData(
         direction: {
           value: closestSwellEntry.directionText,
           condition: {
-            passed:
-              closestSwellEntry.directionText ===
-              FISHING_CONDITIONS.SWELL.DIRECTION.FAIL
-                ? "fail"
-                : FISHING_CONDITIONS.SWELL.DIRECTION.PARTIAL_FAIL.includes(
-                      closestSwellEntry.directionText
-                    )
-                  ? "partial"
-                  : "pass",
+            passed: FISHING_CONDITIONS.SWELL.DIRECTION.FAIL.includes(
+              closestSwellEntry.directionText
+            )
+              ? "fail"
+              : "pass",
             value: closestSwellEntry.directionText,
-            threshold: `Fail: ${FISHING_CONDITIONS.SWELL.DIRECTION.FAIL}, Partial: ${FISHING_CONDITIONS.SWELL.DIRECTION.PARTIAL_FAIL.join(" or ")}`,
+            threshold: `Fail: ${FISHING_CONDITIONS.SWELL.DIRECTION.FAIL.join(", ")}`,
             details: "Excluded swell directions",
           },
         },
@@ -477,18 +473,26 @@ function processWeatherData(
         { condition: weatherMeasurement.condition, weight: 1 },
       ];
 
-      const totalWeight = conditions.reduce(
-        (sum, { weight }) => sum + weight,
-        0
-      );
-      const score = conditions.reduce((sum, { condition, weight }) => {
-        let multiplier = 0;
-        if (condition.passed === "pass") multiplier = 1;
-        else if (condition.passed === "partial") multiplier = 0.5;
-        return sum + weight * multiplier;
-      }, 0);
+      // Check if either daylight condition fails - if so, set overall score to 0
+      const hasDaylightFail =
+        daylightMeasurement.afterSunrise.condition.passed === "fail" ||
+        daylightMeasurement.beforeSunset.condition.passed === "fail";
 
-      const overallScore = (score / totalWeight) * 100;
+      let overallScore = 0;
+      if (!hasDaylightFail) {
+        const totalWeight = conditions.reduce(
+          (sum, { weight }) => sum + weight,
+          0
+        );
+        const score = conditions.reduce((sum, { condition, weight }) => {
+          let multiplier = 0;
+          if (condition.passed === "pass") multiplier = 1;
+          else if (condition.passed === "partial") multiplier = 0.5;
+          return sum + weight * multiplier;
+        }, 0);
+
+        overallScore = (score / totalWeight) * 100;
+      }
 
       // Add fishing window with all measurements and conditions
       const fishingWindow: FishingWindow = {
