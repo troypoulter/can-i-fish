@@ -215,8 +215,8 @@ export default function FishingReport({ windows }: Props) {
 
   const baseMessage =
     passingConditions > 0
-      ? `😀 Good news Fiona! There ${passingConditions === 1 ? "is" : "are"} ${passingConditions} good fishing ${passingConditions === 1 ? "time" : "times"} coming up.`
-      : "😞 Bummer! No ideal fishing conditions in this period Fiona.";
+      ? `😀 Great news Fiona & Josh! There ${passingConditions === 1 ? "is a" : "are"} ${passingConditions} good fishing ${passingConditions === 1 ? "time" : "times"} coming up.`
+      : "😞 Bummer! No ideal fishing conditions this week Fiona & Josh, maybe next week!";
 
   const funPhrase =
     passingConditions > 0
