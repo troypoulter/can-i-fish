@@ -35,23 +35,30 @@ function processWeatherData(
 
   // Process each day
   for (const tideDay of data.forecasts.tides.days) {
-    const date = tideDay.dateTime.split("T")[0];
-    logger.info("Processing day", { date });
+    const dateStr = tideDay.dateTime.split("T")[0];
+    const dateObj = new Date(dateStr);
+    const dayOfWeek = dateObj.toLocaleDateString("en-US", { weekday: "long" });
+    const monthDay = dateObj.toLocaleDateString("en-US", {
+      month: "long",
+      day: "numeric",
+    });
+
+    logger.info(`Processing ${dayOfWeek}, ${monthDay}`, { date: dateStr });
 
     // Get corresponding weather, swell, and sunset data for this day
     const weatherDay = data.forecasts.weather.days.find(
-      (d) => d.dateTime.split("T")[0] === date
+      (d) => d.dateTime.split("T")[0] === dateStr
     );
     const swellDay = data.forecasts.swell.days.find(
-      (d) => d.dateTime.split("T")[0] === date
+      (d) => d.dateTime.split("T")[0] === dateStr
     );
     const sunsetDay = data.forecasts.sunrisesunset.days.find(
-      (d) => d.dateTime.split("T")[0] === date
+      (d) => d.dateTime.split("T")[0] === dateStr
     );
 
     if (!weatherDay || !swellDay || !sunsetDay) {
       logger.info("Missing data for day", {
-        date,
+        date: dateStr,
         hasWeather: !!weatherDay,
         hasSwell: !!swellDay,
         hasSunset: !!sunsetDay,
@@ -62,7 +69,7 @@ function processWeatherData(
     // Process each low tide for the day
     const lowTides = tideDay.entries.filter((entry) => entry.type === "low");
     logger.info("Found low tides for day", {
-      date,
+      date: dateStr,
       lowTidesCount: lowTides.length,
     });
 
@@ -70,7 +77,7 @@ function processWeatherData(
       // Check tide height
       if (lowTide.height > FISHING_CONDITIONS.MAX_LOW_TIDE_HEIGHT) {
         logger.info("Skipping high tide", {
-          date,
+          date: dateStr,
           tideHeight: lowTide.height,
           maxAllowed: FISHING_CONDITIONS.MAX_LOW_TIDE_HEIGHT,
         });
@@ -86,7 +93,7 @@ function processWeatherData(
 
       if (hoursBeforeSunset < FISHING_CONDITIONS.MIN_HOURS_BEFORE_SUNSET) {
         logger.info("Skipping tide too close to sunset", {
-          date,
+          date: dateStr,
           lowTideTime: lowTide.dateTime,
           sunsetTime: sunsetDay.entries[0].setDateTime,
           hoursBeforeSunset,
@@ -99,7 +106,7 @@ function processWeatherData(
       const closestSwellEntry = findClosestEntry(swellDay.entries, lowTideTime);
       if (!closestSwellEntry) {
         logger.info("No swell data found for time", {
-          date,
+          date: dateStr,
           lowTideTime: lowTide.dateTime,
         });
         continue;
@@ -113,7 +120,7 @@ function processWeatherData(
           FISHING_CONDITIONS.EXCLUDED_SWELL_DIRECTION
       ) {
         logger.info("Skipping unfavorable swell conditions", {
-          date,
+          date: dateStr,
           swellHeight: closestSwellEntry.height,
           swellPeriod: closestSwellEntry.period,
           swellDirection: closestSwellEntry.directionText,
@@ -131,14 +138,14 @@ function processWeatherData(
       );
       if (!closestWeatherEntry) {
         logger.info("No weather data found for time", {
-          date,
+          date: dateStr,
           lowTideTime: lowTide.dateTime,
         });
         continue;
       }
 
       logger.info("Found suitable fishing window", {
-        date,
+        date: dateStr,
         lowTideTime: lowTide.dateTime,
         lowTideHeight: lowTide.height,
         swellHeight: closestSwellEntry.height,
@@ -150,7 +157,7 @@ function processWeatherData(
 
       // Add fishing window if all conditions are met
       fishingWindows.push({
-        date,
+        date: dateStr,
         lowTideTime: lowTide.dateTime,
         lowTideHeight: lowTide.height,
         swellHeight: closestSwellEntry.height,
