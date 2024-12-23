@@ -1,15 +1,15 @@
 {
   "compilerOptions": {
-    "target": "es2020",
+    "target": "es2017",
     "module": "commonjs",
-    "lib": ["es2020"],
+    "lib": ["es2017"],
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "outDir": "./dist",
-    "rootDir": "./",
-    "moduleResolution": "node"
+    "jsx": "react",
+    "jsxFactory": "React.createElement",
+    "jsxFragmentFactory": "React.Fragment"
   },
   "include": ["src/**/*", "trigger.config.ts"],
   "exclude": ["node_modules"]

@@ -2,6 +2,7 @@ import { logger, task } from "@trigger.dev/sdk/v3";
 import { WillyWeatherService } from "../services/willyWeatherAPI";
 import type { LocationWeatherWithDetailsResponse } from "../services/types";
 import type { z } from "zod";
+import { EmailService } from "../services/emailService";
 
 // Constants for fishing conditions
 const FISHING_CONDITIONS = {
@@ -39,7 +40,7 @@ interface FishingMeasurement<T> {
   condition: ConditionStatus;
 }
 
-interface FishingWindow {
+export interface FishingWindow {
   date: string;
   lowTide: FishingMeasurement<{
     time: string;
@@ -507,6 +508,8 @@ export const weatherCheckTask = task({
   maxDuration: 300,
   run: async (payload, { ctx }) => {
     const apiKey = process.env.WILLY_WEATHER_API_KEY;
+    const emailTo = process.env.EMAIL_TO;
+
     if (!apiKey) {
       logger.error("Missing WILLY_WEATHER_API_KEY environment variable");
       return {
@@ -515,7 +518,16 @@ export const weatherCheckTask = task({
       };
     }
 
+    if (!emailTo) {
+      logger.error("Missing EMAIL_TO environment variable");
+      return {
+        error: "Configuration error: Missing email recipient",
+        success: false,
+      };
+    }
+
     const weatherService = new WillyWeatherService(apiKey);
+    const emailService = new EmailService();
 
     logger.info("Starting weather check for coordinates", {
       latitude: NORAH_HEAD.lat,
@@ -545,14 +557,21 @@ export const weatherCheckTask = task({
       // Process the weather data to find suitable fishing windows
       const fishingWindows = processWeatherData(weatherData);
 
+      // Send email report
+      const emailResult = await emailService.sendFishingReport(
+        emailTo,
+        fishingWindows
+      );
+
       return {
         success: true,
         location: locationResponse.location,
         fishingWindows,
         weather: weatherData,
+        emailResult,
       };
     } catch (error) {
-      logger.error("Error fetching weather data", { error });
+      logger.error("Error processing weather data", { error });
       return {
         success: false,
         error:
