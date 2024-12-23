@@ -109,12 +109,10 @@ export interface FishingWindow {
     afterSunrise: FishingMeasurement<{
       hours: number;
       time: string;
-      sunriseTime: string;
     }>;
     beforeSunset: FishingMeasurement<{
       hours: number;
       time: string;
-      sunsetTime: string;
     }>;
   };
   weather: FishingMeasurement<string>;
@@ -375,12 +373,7 @@ function processWeatherData(
         afterSunrise: {
           value: {
             hours: hoursAfterSunrise,
-            time: lowTideTime.toLocaleTimeString("en-US", {
-              hour: "2-digit",
-              minute: "2-digit",
-              hour12: true,
-            }),
-            sunriseTime: sunriseTime.toLocaleTimeString("en-US", {
+            time: sunriseTime.toLocaleTimeString("en-US", {
               hour: "2-digit",
               minute: "2-digit",
               hour12: true,
@@ -411,12 +404,7 @@ function processWeatherData(
         beforeSunset: {
           value: {
             hours: hoursBeforeSunset,
-            time: lowTideTime.toLocaleTimeString("en-US", {
-              hour: "2-digit",
-              minute: "2-digit",
-              hour12: true,
-            }),
-            sunsetTime: sunsetTime.toLocaleTimeString("en-US", {
+            time: sunsetTime.toLocaleTimeString("en-US", {
               hour: "2-digit",
               minute: "2-digit",
               hour12: true,

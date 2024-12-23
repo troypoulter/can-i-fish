@@ -5,8 +5,6 @@ import {
   Container,
   Section,
   Text,
-  Row,
-  Column,
 } from "@react-email/components";
 import type { FishingWindow } from "../triggers/weatherCheck";
 import { FISHING_CONDITIONS } from "../triggers/weatherCheck";
@@ -26,43 +24,27 @@ const styles = {
     color: "#666",
     marginBottom: "24px",
   },
-  header: {
+  table: {
+    width: "100%",
+    borderCollapse: "collapse" as const,
+    fontSize: "12px",
+  },
+  th: {
     backgroundColor: "#f8f9fa",
     padding: "8px",
-    fontSize: "12px",
-    color: "#666",
-    fontWeight: "bold",
+    textAlign: "left" as const,
+    borderBottom: "2px solid #dee2e6",
+    whiteSpace: "nowrap" as const,
   },
-  row: {
+  td: {
+    padding: "8px",
     borderBottom: "1px solid #dee2e6",
-    padding: "8px 0",
-  },
-  dateColumn: {
-    width: "120px",
-    padding: "8px",
-    verticalAlign: "top",
-  },
-  conditionColumn: {
-    padding: "8px",
-    verticalAlign: "top",
-  },
-  score: {
-    fontWeight: "bold",
-    marginLeft: "4px",
+    whiteSpace: "nowrap" as const,
   },
   footer: {
     color: "#666",
     fontSize: "12px",
     marginTop: "24px",
-  },
-  conditionLabel: {
-    color: "#666",
-    width: "80px",
-    display: "inline-block",
-  },
-  conditionValue: {
-    display: "inline-block",
-    marginRight: "8px",
   },
 };
 
@@ -72,9 +54,6 @@ interface Props {
 
 const getStatusEmoji = (status: "pass" | "partial" | "fail") =>
   status === "pass" ? "✅" : status === "partial" ? "⚠️" : "❌";
-
-const getScoreEmoji = (score: number) =>
-  score === 100 ? "✅" : score >= 50 ? "⚠️" : "❌";
 
 const formatDate = (dateStr: string) => {
   const date = new Date(dateStr);
@@ -94,79 +73,10 @@ const formatTime = (timeStr: string) => {
   });
 };
 
-const WindowCondition = ({
-  label,
-  value,
-  status,
-  rawValue,
-}: {
-  label: string;
-  value: string | number;
-  status: "pass" | "partial" | "fail";
-  rawValue?: number;
-}) => {
-  // Special handling for sunrise/sunset text
-  if (label === "Sunrise" && typeof rawValue === "number") {
-    value = `${Math.abs(rawValue).toFixed(1)}hrs ${rawValue >= 0 ? "after" : "before"}`;
-  } else if (label === "Sunset" && typeof rawValue === "number") {
-    value = `${Math.abs(rawValue).toFixed(1)}hrs ${rawValue >= 0 ? "before" : "after"}`;
-  }
-
-  return (
-    <Text style={{ fontSize: "12px", margin: "2px 0" }}>
-      <span style={styles.conditionLabel}>{label}:</span>
-      <span style={styles.conditionValue}>
-        {getStatusEmoji(status)} {value}
-      </span>
-    </Text>
-  );
+const formatDaylightHours = (hours: number) => {
+  const absHours = Math.abs(hours);
+  return `${absHours.toFixed(1)}h`;
 };
-
-const ConditionsSummary = () => (
-  <Section
-    style={{
-      marginBottom: "24px",
-      backgroundColor: "#f8f9fa",
-      padding: "16px",
-      borderRadius: "8px",
-    }}
-  >
-    <Text style={{ fontSize: "14px", fontWeight: "bold", marginBottom: "8px" }}>
-      🎣 Fishing Conditions Guide:
-    </Text>
-    <Text style={{ fontSize: "12px", margin: "4px 0" }}>
-      • Tide: Optimal ≤{FISHING_CONDITIONS.TIDE.PASS_THRESHOLD}m, Acceptable ≤
-      {FISHING_CONDITIONS.TIDE.PARTIAL_THRESHOLD}m
-    </Text>
-    <Text style={{ fontSize: "12px", margin: "4px 0" }}>
-      • Swell Height: Optimal ≤{FISHING_CONDITIONS.SWELL.HEIGHT.PASS_THRESHOLD}
-      m, Acceptable ≤{FISHING_CONDITIONS.SWELL.HEIGHT.PARTIAL_THRESHOLD}m
-    </Text>
-    <Text style={{ fontSize: "12px", margin: "4px 0" }}>
-      • Swell Period: Optimal ≤{FISHING_CONDITIONS.SWELL.PERIOD.PASS_THRESHOLD}
-      s, Acceptable ≤{FISHING_CONDITIONS.SWELL.PERIOD.PARTIAL_THRESHOLD}s
-    </Text>
-    <Text style={{ fontSize: "12px", margin: "4px 0" }}>
-      • Swell Direction: Avoid {FISHING_CONDITIONS.SWELL.DIRECTION.FAIL},
-      Caution with{" "}
-      {FISHING_CONDITIONS.SWELL.DIRECTION.PARTIAL_FAIL.join(" or ")}
-    </Text>
-    <Text style={{ fontSize: "12px", margin: "4px 0" }}>
-      • Daylight: Must be after sunrise and at least{" "}
-      {FISHING_CONDITIONS.MIN_HOURS_BEFORE_SUNSET} hours before sunset
-    </Text>
-    <Text style={{ fontSize: "12px", margin: "4px 0" }}>
-      • Weather: Best conditions are{" "}
-      {FISHING_CONDITIONS.WEATHER.PASS.join(", ")}, Acceptable conditions are{" "}
-      {FISHING_CONDITIONS.WEATHER.PARTIAL.join(", ")}
-    </Text>
-    <Text
-      style={{ fontSize: "12px", margin: "8px 0 0 0", fontStyle: "italic" }}
-    >
-      ✅ Optimal • ⚠️ Acceptable • ❌ Unsuitable
-    </Text>
-  </Section>
-);
 
 const WindowsSummary = ({ windows }: { windows: FishingWindow[] }) => {
   const optimal = windows.filter((w) => w.overallScore === 100);
@@ -220,19 +130,6 @@ const WindowsSummary = ({ windows }: { windows: FishingWindow[] }) => {
 };
 
 export default function FishingReport({ windows }: Props) {
-  // Group windows by date
-  const windowsByDate = windows.reduce(
-    (acc, window) => {
-      const date = window.date;
-      if (!acc[date]) {
-        acc[date] = [];
-      }
-      acc[date].push(window);
-      return acc;
-    },
-    {} as Record<string, FishingWindow[]>
-  );
-
   return (
     <Html>
       <Head />
@@ -245,87 +142,78 @@ export default function FishingReport({ windows }: Props) {
 
           <WindowsSummary windows={windows} />
 
-          <ConditionsSummary />
-
-          <Section>
-            <Row style={styles.header}>
-              <Column style={styles.dateColumn}>Date</Column>
-              <Column style={styles.conditionColumn}>Low Tide Windows</Column>
-            </Row>
-
-            {Object.entries(windowsByDate).map(([date, dayWindows]) => (
-              <Row key={date} style={styles.row}>
-                <Column style={styles.dateColumn}>
-                  <Text style={{ fontSize: "14px", fontWeight: "bold" }}>
-                    {formatDate(date)}
-                  </Text>
-                </Column>
-                <Column style={styles.conditionColumn}>
-                  {dayWindows.map((window) => (
-                    <Section
-                      key={window.lowTide.value.time}
-                      style={{ marginBottom: "16px" }}
-                    >
-                      <Text
-                        style={{
-                          fontSize: "13px",
-                          fontWeight: "bold",
-                          marginBottom: "6px",
-                        }}
-                      >
-                        {getScoreEmoji(window.overallScore)}{" "}
-                        {formatTime(window.lowTide.value.time)} -{" "}
-                        <span style={styles.score}>
-                          {window.overallScore.toFixed(0)}%
-                        </span>
-                      </Text>
-
-                      <WindowCondition
-                        label="Tide"
-                        value={`${window.lowTide.value.height}m`}
-                        status={window.lowTide.condition.passed}
-                      />
-
-                      <WindowCondition
-                        label="Swell Height"
-                        value={`${window.swell.height.value}m`}
-                        status={window.swell.height.condition.passed}
-                      />
-                      <WindowCondition
-                        label="Swell Period"
-                        value={`${window.swell.period.value}s`}
-                        status={window.swell.period.condition.passed}
-                      />
-                      <WindowCondition
-                        label="Direction"
-                        value={window.swell.direction.value}
-                        status={window.swell.direction.condition.passed}
-                      />
-
-                      <WindowCondition
-                        label="Sunrise"
-                        value={`${window.daylight.afterSunrise.value.hours.toFixed(1)}hrs after`}
-                        status={window.daylight.afterSunrise.condition.passed}
-                        rawValue={window.daylight.afterSunrise.value.hours}
-                      />
-                      <WindowCondition
-                        label="Sunset"
-                        value={`${window.daylight.beforeSunset.value.hours.toFixed(1)}hrs before`}
-                        status={window.daylight.beforeSunset.condition.passed}
-                        rawValue={window.daylight.beforeSunset.value.hours}
-                      />
-
-                      <WindowCondition
-                        label="Weather"
-                        value={window.weather.value}
-                        status={window.weather.condition.passed}
-                      />
-                    </Section>
-                  ))}
-                </Column>
-              </Row>
-            ))}
-          </Section>
+          <table style={styles.table}>
+            <thead>
+              <tr>
+                <th style={styles.th}>Date</th>
+                <th style={styles.th}>Time</th>
+                <th style={styles.th}>Score</th>
+                <th style={styles.th}>Tide</th>
+                <th style={styles.th}>Height</th>
+                <th style={styles.th}>Period</th>
+                <th style={styles.th}>Dir</th>
+                <th style={styles.th}>Sunrise</th>
+                <th style={styles.th}>Sunset</th>
+                <th style={styles.th}>Weather</th>
+              </tr>
+            </thead>
+            <tbody>
+              {windows.map((window) => (
+                <tr key={`${window.date}-${window.lowTide.value.time}`}>
+                  <td style={styles.td}>{formatDate(window.date)}</td>
+                  <td style={styles.td}>
+                    {formatTime(window.lowTide.value.time)}
+                  </td>
+                  <td style={styles.td}>
+                    {getStatusEmoji(
+                      window.overallScore === 100
+                        ? "pass"
+                        : window.overallScore >= 50
+                          ? "partial"
+                          : "fail"
+                    )}{" "}
+                    {window.overallScore.toFixed(0)}%
+                  </td>
+                  <td style={styles.td}>
+                    {getStatusEmoji(window.lowTide.condition.passed)}{" "}
+                    {window.lowTide.value.height}m
+                  </td>
+                  <td style={styles.td}>
+                    {getStatusEmoji(window.swell.height.condition.passed)}{" "}
+                    {window.swell.height.value}m
+                  </td>
+                  <td style={styles.td}>
+                    {getStatusEmoji(window.swell.period.condition.passed)}{" "}
+                    {window.swell.period.value}s
+                  </td>
+                  <td style={styles.td}>
+                    {getStatusEmoji(window.swell.direction.condition.passed)}{" "}
+                    {window.swell.direction.value}
+                  </td>
+                  <td style={styles.td}>
+                    {getStatusEmoji(
+                      window.daylight.afterSunrise.condition.passed
+                    )}{" "}
+                    {formatDaylightHours(
+                      window.daylight.afterSunrise.value.hours
+                    )}
+                  </td>
+                  <td style={styles.td}>
+                    {getStatusEmoji(
+                      window.daylight.beforeSunset.condition.passed
+                    )}{" "}
+                    {formatDaylightHours(
+                      window.daylight.beforeSunset.value.hours
+                    )}
+                  </td>
+                  <td style={styles.td}>
+                    {getStatusEmoji(window.weather.condition.passed)}{" "}
+                    {window.weather.value}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
 
           <Text style={styles.footer}>
             Generated at {new Date().toLocaleString()}
