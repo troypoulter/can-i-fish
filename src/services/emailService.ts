@@ -17,10 +17,15 @@ export class EmailService {
 
   async sendFishingReport(to: string, windows: FishingWindow[]) {
     try {
+      const hasPassingConditions = windows.some(
+        (window) => window.overallScore === 100
+      );
+      const statusEmoji = hasPassingConditions ? "✅" : "❌";
+
       const data = await this.resend.emails.send({
         from: "Can I Fish? <onboarding@resend.dev>",
         to: [to],
-        subject: `Norah Head Fishing Report ${new Date().toLocaleString()}`,
+        subject: `${statusEmoji} Norah Head Fishing Report ${new Date().toLocaleString()}`,
         react: FishingReport({ windows }) as ReactElement,
       });
 

@@ -5,6 +5,7 @@ import {
   Container,
   Section,
   Text,
+  Preview,
 } from "@react-email/components";
 import type { FishingWindow } from "../triggers/weatherCheck";
 import { FISHING_CONDITIONS } from "../triggers/weatherCheck";
@@ -132,15 +133,25 @@ const weatherEmojis: Record<string, string> = {
 export default function FishingReport({ windows }: Props) {
   const dateRange = formatDateRange(windows);
 
+  const passingConditions = windows.filter(
+    (window) => window.overallScore === 100
+  ).length;
+  const summaryText =
+    passingConditions > 0
+      ? `Good news Fiona! There ${passingConditions === 1 ? "is" : "are"} ${passingConditions} good fishing ${passingConditions === 1 ? "time" : "times"} coming up.`
+      : "No ideal fishing conditions in this period Fiona.";
+
   return (
     <Html>
       <Head />
+      <Preview>{summaryText}</Preview>
       <Body style={{ fontFamily: "system-ui" }}>
         <Container style={styles.container}>
           <Text style={styles.title}>
             Norah Head Fishing Conditions Report for {dateRange.start} -{" "}
             {dateRange.end}
           </Text>
+          <Text style={styles.subtitle}>{summaryText}</Text>
 
           <table style={styles.table}>
             <thead>
