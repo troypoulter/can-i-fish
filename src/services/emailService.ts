@@ -4,6 +4,23 @@ import FishingReport from "../emails/FishingReport";
 import { logger } from "@trigger.dev/sdk/v3";
 import type { ReactElement } from "react";
 
+const formatDateRange = (windows: FishingWindow[]) => {
+  const dates = windows.map((w) => new Date(w.date));
+  const startDate = new Date(Math.min(...dates.map((d) => d.getTime())));
+  const endDate = new Date(Math.max(...dates.map((d) => d.getTime())));
+
+  return {
+    start: startDate.toLocaleDateString("en-AU", {
+      day: "numeric",
+      month: "numeric",
+    }),
+    end: endDate.toLocaleDateString("en-AU", {
+      day: "numeric",
+      month: "numeric",
+    }),
+  };
+};
+
 export class EmailService {
   private resend: Resend;
   private recipients: string[];
@@ -36,11 +53,12 @@ export class EmailService {
         (window) => window.overallScore === 100
       );
       const statusEmoji = hasPassingConditions ? "✅" : "❌";
+      const dateRange = formatDateRange(windows);
 
       const data = await this.resend.emails.send({
         from: "Can I Fish? <noreply@noreply.troypoulter.com>",
         to: this.recipients,
-        subject: `${statusEmoji} Norah Head Fishing Report ${new Date().toLocaleString()}`,
+        subject: `${statusEmoji} Norah Head 🐟 ${dateRange.start} - ${dateRange.end}`,
         react: FishingReport({ windows }) as ReactElement,
       });
 
