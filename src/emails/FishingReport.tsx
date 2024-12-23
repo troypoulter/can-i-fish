@@ -78,55 +78,23 @@ const formatDaylightHours = (hours: number) => {
   return `${absHours.toFixed(1)}h`;
 };
 
-const WindowsSummary = ({ windows }: { windows: FishingWindow[] }) => {
-  const optimal = windows.filter((w) => w.overallScore === 100);
-  const acceptable = windows.filter(
-    (w) => w.overallScore >= 50 && w.overallScore < 100
-  );
-  const unsuitable = windows.filter((w) => w.overallScore < 50);
+const formatDateRange = (windows: FishingWindow[]) => {
+  const dates = windows.map((w) => new Date(w.date));
+  const startDate = new Date(Math.min(...dates.map((d) => d.getTime())));
+  const endDate = new Date(Math.max(...dates.map((d) => d.getTime())));
 
-  return (
-    <Section
-      style={{
-        marginBottom: "24px",
-        backgroundColor: "#f0f8ff",
-        padding: "16px",
-        borderRadius: "8px",
-      }}
-    >
-      <Text
-        style={{ fontSize: "14px", fontWeight: "bold", marginBottom: "8px" }}
-      >
-        🎯 Quick Summary:
-      </Text>
-      <Text style={{ fontSize: "13px", margin: "4px 0" }}>
-        ✅ {optimal.length} Optimal Periods
-        {optimal.length > 0 && ":"}
-      </Text>
-      {optimal.length > 0 && (
-        <Text
-          style={{
-            fontSize: "12px",
-            margin: "4px 0 8px 16px",
-            color: "#2d5a27",
-          }}
-        >
-          {optimal
-            .map(
-              (w) =>
-                `${formatDate(w.date)} at ${formatTime(w.lowTide.value.time)}`
-            )
-            .join("\n")}
-        </Text>
-      )}
-      <Text style={{ fontSize: "13px", margin: "4px 0" }}>
-        ⚠️ {acceptable.length} Acceptable Periods
-      </Text>
-      <Text style={{ fontSize: "13px", margin: "4px 0" }}>
-        ❌ {unsuitable.length} Unsuitable Periods
-      </Text>
-    </Section>
-  );
+  return {
+    start: startDate.toLocaleDateString("en-AU", {
+      day: "numeric",
+      month: "numeric",
+      year: "numeric",
+    }),
+    end: endDate.toLocaleDateString("en-AU", {
+      day: "numeric",
+      month: "numeric",
+      year: "numeric",
+    }),
+  };
 };
 
 const weatherEmojis: Record<string, string> = {
@@ -162,17 +130,17 @@ const weatherEmojis: Record<string, string> = {
 };
 
 export default function FishingReport({ windows }: Props) {
+  const dateRange = formatDateRange(windows);
+
   return (
     <Html>
       <Head />
       <Body style={{ fontFamily: "system-ui" }}>
         <Container style={styles.container}>
-          <Text style={styles.title}>Fishing Conditions Report</Text>
-          <Text style={styles.subtitle}>
-            Here's your latest fishing conditions report for Norah Head
+          <Text style={styles.title}>
+            Norah Head Fishing Conditions Report for {dateRange.start} -{" "}
+            {dateRange.end}
           </Text>
-
-          <WindowsSummary windows={windows} />
 
           <table style={styles.table}>
             <thead>
@@ -247,10 +215,6 @@ export default function FishingReport({ windows }: Props) {
               ))}
             </tbody>
           </table>
-
-          <Text style={styles.footer}>
-            Generated at {new Date().toLocaleString()}
-          </Text>
         </Container>
       </Body>
     </Html>
