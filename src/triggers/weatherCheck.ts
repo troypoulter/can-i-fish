@@ -446,7 +446,7 @@ function processWeatherData(
                 )
               ? "partial"
               : "fail",
-          value: closestWeatherEntry.precis,
+          value: closestWeatherEntry.precisCode,
           threshold: `Pass: ${FISHING_CONDITIONS.WEATHER.PASS.join(", ")}, Partial: ${FISHING_CONDITIONS.WEATHER.PARTIAL.join(", ")}`,
           details: "Weather conditions suitable for fishing",
         },

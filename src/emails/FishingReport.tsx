@@ -129,6 +129,38 @@ const WindowsSummary = ({ windows }: { windows: FishingWindow[] }) => {
   );
 };
 
+const weatherEmojis: Record<string, string> = {
+  fine: "☀️",
+  "mostly-fine": "🌤️",
+  "high-cloud": "⛅",
+  "partly-cloudy": "⛅",
+  "mostly-cloudy": "🌥️",
+  cloudy: "☁️",
+  overcast: "☁️",
+  "shower-or-two": "🌦️",
+  "chance-shower-fine": "🌦️",
+  "chance-shower-cloud": "🌧️",
+  drizzle: "🌧️",
+  "few-showers": "🌧️",
+  "showers-rain": "🌧️",
+  "heavy-showers-rain": "⛈️",
+  "chance-thunderstorm-fine": "⛈️",
+  "chance-thunderstorm-cloud": "⛈️",
+  "chance-thunderstorm-showers": "⛈️",
+  thunderstorm: "🌩️",
+  "chance-snow-fine": "🌨️",
+  "chance-snow-cloud": "🌨️",
+  "snow-and-rain": "🌨️",
+  "light-snow": "🌨️",
+  snow: "❄️",
+  "heavy-snow": "❄️",
+  wind: "💨",
+  frost: "❄️",
+  fog: "🌫️",
+  hail: "🌨️",
+  dust: "💨",
+};
+
 export default function FishingReport({ windows }: Props) {
   return (
     <Html>
@@ -208,7 +240,8 @@ export default function FishingReport({ windows }: Props) {
                   </td>
                   <td style={styles.td}>
                     {getStatusEmoji(window.weather.condition.passed)}{" "}
-                    {window.weather.value}
+                    {weatherEmojis[window.weather.condition.value as string] ||
+                      "❓"}
                   </td>
                 </tr>
               ))}
