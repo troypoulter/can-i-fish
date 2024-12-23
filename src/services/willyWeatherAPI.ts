@@ -34,7 +34,6 @@ export class WillyWeatherService {
     }
 
     const data = await response.json();
-    logger.info("Weather raw response", { data });
 
     return LocationWeatherWithDetailsResponse.parse(data);
   }
