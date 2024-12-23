@@ -395,14 +395,15 @@ function processWeatherData(
               hour: "2-digit",
               minute: "2-digit",
               hour12: true,
-            })} (${hoursAfterSunrise.toFixed(1)}hrs after ${sunriseTime.toLocaleTimeString(
-              "en-US",
-              {
-                hour: "2-digit",
-                minute: "2-digit",
-                hour12: true,
-              }
-            )})`,
+            })} (${
+              hoursAfterSunrise >= 0
+                ? `${Math.abs(hoursAfterSunrise).toFixed(1)}hrs after`
+                : `${Math.abs(hoursAfterSunrise).toFixed(1)}hrs before`
+            } ${sunriseTime.toLocaleTimeString("en-US", {
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: true,
+            })})`,
             threshold: `≥${FISHING_CONDITIONS.MIN_HOURS_AFTER_SUNRISE} hours after sunrise`,
             details: "Minimum hours required after sunrise",
           },
@@ -430,14 +431,15 @@ function processWeatherData(
               hour: "2-digit",
               minute: "2-digit",
               hour12: true,
-            })} (${hoursBeforeSunset.toFixed(1)}hrs before ${sunsetTime.toLocaleTimeString(
-              "en-US",
-              {
-                hour: "2-digit",
-                minute: "2-digit",
-                hour12: true,
-              }
-            )})`,
+            })} (${
+              hoursBeforeSunset >= 0
+                ? `${Math.abs(hoursBeforeSunset).toFixed(1)}hrs before`
+                : `${Math.abs(hoursBeforeSunset).toFixed(1)}hrs after`
+            } ${sunsetTime.toLocaleTimeString("en-US", {
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: true,
+            })})`,
             threshold: `≥${FISHING_CONDITIONS.MIN_HOURS_BEFORE_SUNSET} hours before sunset`,
             details: "Minimum hours required before sunset",
           },
