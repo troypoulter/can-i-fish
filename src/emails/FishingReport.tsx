@@ -98,18 +98,29 @@ const WindowCondition = ({
   label,
   value,
   status,
+  rawValue,
 }: {
   label: string;
   value: string | number;
   status: "pass" | "partial" | "fail";
-}) => (
-  <Text style={{ fontSize: "12px", margin: "2px 0" }}>
-    <span style={styles.conditionLabel}>{label}:</span>
-    <span style={styles.conditionValue}>
-      {getStatusEmoji(status)} {value}
-    </span>
-  </Text>
-);
+  rawValue?: number;
+}) => {
+  // Special handling for sunrise/sunset text
+  if (label === "Sunrise" && typeof rawValue === "number") {
+    value = `${Math.abs(rawValue).toFixed(1)}hrs ${rawValue >= 0 ? "after" : "before"}`;
+  } else if (label === "Sunset" && typeof rawValue === "number") {
+    value = `${Math.abs(rawValue).toFixed(1)}hrs ${rawValue >= 0 ? "before" : "after"}`;
+  }
+
+  return (
+    <Text style={{ fontSize: "12px", margin: "2px 0" }}>
+      <span style={styles.conditionLabel}>{label}:</span>
+      <span style={styles.conditionValue}>
+        {getStatusEmoji(status)} {value}
+      </span>
+    </Text>
+  );
+};
 
 const ConditionsSummary = () => (
   <Section
@@ -295,11 +306,13 @@ export default function FishingReport({ windows }: Props) {
                         label="Sunrise"
                         value={`${window.daylight.afterSunrise.value.hours.toFixed(1)}hrs after`}
                         status={window.daylight.afterSunrise.condition.passed}
+                        rawValue={window.daylight.afterSunrise.value.hours}
                       />
                       <WindowCondition
                         label="Sunset"
                         value={`${window.daylight.beforeSunset.value.hours.toFixed(1)}hrs before`}
                         status={window.daylight.beforeSunset.condition.passed}
+                        rawValue={window.daylight.beforeSunset.value.hours}
                       />
 
                       <WindowCondition
