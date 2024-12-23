@@ -181,10 +181,8 @@ const failingPhrases = [
   "Time to practice your casting in the backyard instead! 🎯",
   "Netflix and chill might be a better option... 📺",
   "The fish are having a union meeting! 👔",
-  "Maybe it's a good day to clean the tackle box? 🧹",
   "The fish are social distancing! 😷",
   "Even the seagulls are staying home! 🦅",
-  "Perfect day to tell stories about 'the one that got away'! 🐠",
   "The fish are busy updating their Instagram! 📱",
   "Time to browse the fishing catalogue instead! 📖",
   "The fish are having a spa day! 💆‍♀️",
@@ -204,7 +202,6 @@ const failingPhrases = [
   "The fish are having a group therapy session! 🛋️",
   "They're all at an underwater comedy club! 🎭",
   "The fish are doing their taxes today! 📊",
-  "Time to practice your fish calls instead! 📢",
   "They're having a underwater protest! ✊",
   "The fish are attending cooking classes! 👨‍🍳",
   "They're all at their high school reunion! 🎓",
@@ -218,8 +215,8 @@ export default function FishingReport({ windows }: Props) {
 
   const baseMessage =
     passingConditions > 0
-      ? `Good news Fiona! There ${passingConditions === 1 ? "is" : "are"} ${passingConditions} good fishing ${passingConditions === 1 ? "time" : "times"} coming up.`
-      : "Bummer! No ideal fishing conditions in this period Fiona.";
+      ? `😀 Good news Fiona! There ${passingConditions === 1 ? "is" : "are"} ${passingConditions} good fishing ${passingConditions === 1 ? "time" : "times"} coming up.`
+      : "😞 Bummer! No ideal fishing conditions in this period Fiona.";
 
   const funPhrase =
     passingConditions > 0
