@@ -10,6 +10,7 @@ const FISHING_CONDITIONS = {
   MAX_SWELL_PERIOD: 6, // seconds
   EXCLUDED_SWELL_DIRECTION: "SE",
   MIN_HOURS_BEFORE_SUNSET: 2,
+  MIN_HOURS_AFTER_SUNRISE: 0, // Must be after sunrise
 };
 
 interface ConditionStatus {
@@ -30,19 +31,26 @@ interface FishingWindow {
     time: string;
     height: number;
   }>;
-  swell: FishingMeasurement<{
-    height: number;
-    period: number;
-    direction: string;
-  }>;
-  timeBeforeSunset: FishingMeasurement<{
-    hours: number;
-    time: string;
-    sunsetTime: string;
-  }>;
+  swell: {
+    height: FishingMeasurement<number>;
+    period: FishingMeasurement<number>;
+    direction: FishingMeasurement<string>;
+  };
+  daylight: {
+    afterSunrise: FishingMeasurement<{
+      hours: number;
+      time: string;
+      sunriseTime: string;
+    }>;
+    beforeSunset: FishingMeasurement<{
+      hours: number;
+      time: string;
+      sunsetTime: string;
+    }>;
+  };
   weather: string;
   sunsetTime: string;
-  overallScore: number; // Percentage of conditions that passed
+  overallScore: number;
 }
 
 function logFishingWindowsSummary(fishingWindows: FishingWindow[]) {
@@ -66,8 +74,8 @@ function logFishingWindowsSummary(fishingWindows: FishingWindow[]) {
         date: w.date,
         time: w.lowTide.value.time,
         tide: `${w.lowTide.value.height}m`,
-        swell: `${w.swell.value.height}m ${w.swell.value.period}s ${w.swell.value.direction}`,
-        timeToSunset: `${w.timeBeforeSunset.value.hours.toFixed(1)}hrs (${w.timeBeforeSunset.value.time} → ${w.timeBeforeSunset.value.sunsetTime})`,
+        swell: `${w.swell.height.value}m ${w.swell.period.value}s ${w.swell.direction.value}`,
+        daylight: `${w.daylight.afterSunrise.value.hours.toFixed(1)}hrs after sunrise, ${w.daylight.beforeSunset.value.hours.toFixed(1)}hrs before sunset`,
         weather: w.weather,
       })),
     });
@@ -83,22 +91,40 @@ function logFishingWindowsSummary(fishingWindows: FishingWindow[]) {
           w.lowTide.condition.passed
             ? `✓ Tide: ${w.lowTide.value.height}m`
             : null,
-          w.swell.condition.passed
-            ? `✓ Swell: ${w.swell.value.height}m ${w.swell.value.period}s ${w.swell.value.direction}`
+          w.swell.height.condition.passed
+            ? `✓ Swell Height: ${w.swell.height.value}m`
             : null,
-          w.timeBeforeSunset.condition.passed
-            ? `✓ Time: ${w.timeBeforeSunset.value.hours.toFixed(1)}hrs to sunset`
+          w.swell.period.condition.passed
+            ? `✓ Swell Period: ${w.swell.period.value}s`
+            : null,
+          w.swell.direction.condition.passed
+            ? `✓ Swell Direction: ${w.swell.direction.value}`
+            : null,
+          w.daylight.afterSunrise.condition.passed
+            ? `✓ After Sunrise: ${w.daylight.afterSunrise.value.hours.toFixed(1)}hrs`
+            : null,
+          w.daylight.beforeSunset.condition.passed
+            ? `✓ Before Sunset: ${w.daylight.beforeSunset.value.hours.toFixed(1)}hrs`
             : null,
         ].filter(Boolean),
         failedConditions: [
           !w.lowTide.condition.passed
             ? `✗ Tide: ${w.lowTide.value.height}m`
             : null,
-          !w.swell.condition.passed
-            ? `✗ Swell: ${w.swell.value.height}m ${w.swell.value.period}s ${w.swell.value.direction}`
+          !w.swell.height.condition.passed
+            ? `✗ Swell Height: ${w.swell.height.value}m`
             : null,
-          !w.timeBeforeSunset.condition.passed
-            ? `✗ Time: ${w.timeBeforeSunset.value.hours.toFixed(1)}hrs to sunset`
+          !w.swell.period.condition.passed
+            ? `✗ Swell Period: ${w.swell.period.value}s`
+            : null,
+          !w.swell.direction.condition.passed
+            ? `✗ Swell Direction: ${w.swell.direction.value}`
+            : null,
+          !w.daylight.afterSunrise.condition.passed
+            ? `✗ After Sunrise: ${w.daylight.afterSunrise.value.hours.toFixed(1)}hrs`
+            : null,
+          !w.daylight.beforeSunset.condition.passed
+            ? `✗ Before Sunset: ${w.daylight.beforeSunset.value.hours.toFixed(1)}hrs`
             : null,
         ].filter(Boolean),
       })),
@@ -114,11 +140,20 @@ function logFishingWindowsSummary(fishingWindows: FishingWindow[]) {
           !w.lowTide.condition.passed
             ? `Tide: ${w.lowTide.value.height}m`
             : null,
-          !w.swell.condition.passed
-            ? `Swell: ${w.swell.value.height}m ${w.swell.value.period}s ${w.swell.value.direction}`
+          !w.swell.height.condition.passed
+            ? `Swell Height: ${w.swell.height.value}m`
             : null,
-          !w.timeBeforeSunset.condition.passed
-            ? `Time: ${w.timeBeforeSunset.value.hours.toFixed(1)}hrs to sunset`
+          !w.swell.period.condition.passed
+            ? `Swell Period: ${w.swell.period.value}s`
+            : null,
+          !w.swell.direction.condition.passed
+            ? `Swell Direction: ${w.swell.direction.value}`
+            : null,
+          !w.daylight.afterSunrise.condition.passed
+            ? `After Sunrise: ${w.daylight.afterSunrise.value.hours.toFixed(1)}hrs`
+            : null,
+          !w.daylight.beforeSunset.condition.passed
+            ? `Before Sunset: ${w.daylight.beforeSunset.value.hours.toFixed(1)}hrs`
             : null,
         ].filter(Boolean),
       })),
@@ -179,8 +214,12 @@ function processWeatherData(
     for (const lowTide of lowTides) {
       const lowTideTime = new Date(lowTide.dateTime);
       const sunsetTime = new Date(sunsetDay.entries[0].setDateTime);
+      const sunriseTime = new Date(sunsetDay.entries[0].riseDateTime);
+
       const hoursBeforeSunset =
         (sunsetTime.getTime() - lowTideTime.getTime()) / (1000 * 60 * 60);
+      const hoursAfterSunrise =
+        (lowTideTime.getTime() - sunriseTime.getTime()) / (1000 * 60 * 60);
 
       // Find closest swell and weather readings
       const closestSwellEntry = findClosestEntry(swellDay.entries, lowTideTime);
@@ -215,71 +254,117 @@ function processWeatherData(
         },
       };
 
-      const swellMeasurement: FishingMeasurement<{
-        height: number;
-        period: number;
-        direction: string;
-      }> = {
-        value: {
-          height: closestSwellEntry.height,
-          period: closestSwellEntry.period,
-          direction: closestSwellEntry.directionText,
+      const swellMeasurement = {
+        height: {
+          value: closestSwellEntry.height,
+          condition: {
+            passed:
+              closestSwellEntry.height <= FISHING_CONDITIONS.MAX_SWELL_HEIGHT,
+            value: closestSwellEntry.height,
+            threshold: FISHING_CONDITIONS.MAX_SWELL_HEIGHT,
+            details: "Maximum allowable swell height",
+          },
         },
-        condition: {
-          passed:
-            closestSwellEntry.height <= FISHING_CONDITIONS.MAX_SWELL_HEIGHT &&
-            closestSwellEntry.period <= FISHING_CONDITIONS.MAX_SWELL_PERIOD &&
-            closestSwellEntry.directionText !==
+        period: {
+          value: closestSwellEntry.period,
+          condition: {
+            passed:
+              closestSwellEntry.period <= FISHING_CONDITIONS.MAX_SWELL_PERIOD,
+            value: closestSwellEntry.period,
+            threshold: FISHING_CONDITIONS.MAX_SWELL_PERIOD,
+            details: "Maximum allowable swell period",
+          },
+        },
+        direction: {
+          value: closestSwellEntry.directionText,
+          condition: {
+            passed:
+              closestSwellEntry.directionText !==
               FISHING_CONDITIONS.EXCLUDED_SWELL_DIRECTION,
-          value: `${closestSwellEntry.height}m ${closestSwellEntry.period}s ${closestSwellEntry.directionText}`,
-          threshold: `≤${FISHING_CONDITIONS.MAX_SWELL_HEIGHT}m ≤${FISHING_CONDITIONS.MAX_SWELL_PERIOD}s !${FISHING_CONDITIONS.EXCLUDED_SWELL_DIRECTION}`,
-          details: "Swell conditions within acceptable ranges",
+            value: closestSwellEntry.directionText,
+            threshold: FISHING_CONDITIONS.EXCLUDED_SWELL_DIRECTION,
+            details: "Excluded swell direction",
+          },
         },
       };
 
-      const timeBeforeSunsetMeasurement: FishingMeasurement<{
-        hours: number;
-        time: string;
-        sunsetTime: string;
-      }> = {
-        value: {
-          hours: hoursBeforeSunset,
-          time: lowTideTime.toLocaleTimeString("en-US", {
-            hour: "2-digit",
-            minute: "2-digit",
-            hour12: true,
-          }),
-          sunsetTime: sunsetTime.toLocaleTimeString("en-US", {
-            hour: "2-digit",
-            minute: "2-digit",
-            hour12: true,
-          }),
-        },
-        condition: {
-          passed:
-            hoursBeforeSunset >= FISHING_CONDITIONS.MIN_HOURS_BEFORE_SUNSET,
-          value: `${lowTideTime.toLocaleTimeString("en-US", {
-            hour: "2-digit",
-            minute: "2-digit",
-            hour12: true,
-          })} (${hoursBeforeSunset.toFixed(1)}hrs before ${sunsetTime.toLocaleTimeString(
-            "en-US",
-            {
+      const daylightMeasurement = {
+        afterSunrise: {
+          value: {
+            hours: hoursAfterSunrise,
+            time: lowTideTime.toLocaleTimeString("en-US", {
               hour: "2-digit",
               minute: "2-digit",
               hour12: true,
-            }
-          )})`,
-          threshold: `≥${FISHING_CONDITIONS.MIN_HOURS_BEFORE_SUNSET} hours before sunset`,
-          details: "Minimum hours required before sunset",
+            }),
+            sunriseTime: sunriseTime.toLocaleTimeString("en-US", {
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: true,
+            }),
+          },
+          condition: {
+            passed:
+              hoursAfterSunrise >= FISHING_CONDITIONS.MIN_HOURS_AFTER_SUNRISE,
+            value: `${lowTideTime.toLocaleTimeString("en-US", {
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: true,
+            })} (${hoursAfterSunrise.toFixed(1)}hrs after ${sunriseTime.toLocaleTimeString(
+              "en-US",
+              {
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: true,
+              }
+            )})`,
+            threshold: `≥${FISHING_CONDITIONS.MIN_HOURS_AFTER_SUNRISE} hours after sunrise`,
+            details: "Minimum hours required after sunrise",
+          },
+        },
+        beforeSunset: {
+          value: {
+            hours: hoursBeforeSunset,
+            time: lowTideTime.toLocaleTimeString("en-US", {
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: true,
+            }),
+            sunsetTime: sunsetTime.toLocaleTimeString("en-US", {
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: true,
+            }),
+          },
+          condition: {
+            passed:
+              hoursBeforeSunset >= FISHING_CONDITIONS.MIN_HOURS_BEFORE_SUNSET,
+            value: `${lowTideTime.toLocaleTimeString("en-US", {
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: true,
+            })} (${hoursBeforeSunset.toFixed(1)}hrs before ${sunsetTime.toLocaleTimeString(
+              "en-US",
+              {
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: true,
+              }
+            )})`,
+            threshold: `≥${FISHING_CONDITIONS.MIN_HOURS_BEFORE_SUNSET} hours before sunset`,
+            details: "Minimum hours required before sunset",
+          },
         },
       };
 
       // Calculate overall score
       const conditions = [
         lowTideMeasurement.condition,
-        swellMeasurement.condition,
-        timeBeforeSunsetMeasurement.condition,
+        swellMeasurement.height.condition,
+        swellMeasurement.period.condition,
+        swellMeasurement.direction.condition,
+        daylightMeasurement.afterSunrise.condition,
+        daylightMeasurement.beforeSunset.condition,
       ];
       const passedConditions = conditions.filter((c) => c.passed).length;
       const overallScore = (passedConditions / conditions.length) * 100;
@@ -288,7 +373,7 @@ function processWeatherData(
         date: dateStr,
         lowTide: lowTideMeasurement,
         swell: swellMeasurement,
-        timeBeforeSunset: timeBeforeSunsetMeasurement,
+        daylight: daylightMeasurement,
         overallScore,
       });
 
@@ -297,7 +382,7 @@ function processWeatherData(
         date: dateStr,
         lowTide: lowTideMeasurement,
         swell: swellMeasurement,
-        timeBeforeSunset: timeBeforeSunsetMeasurement,
+        daylight: daylightMeasurement,
         weather: closestWeatherEntry.precis,
         sunsetTime: sunsetDay.entries[0].setDateTime,
         overallScore,
