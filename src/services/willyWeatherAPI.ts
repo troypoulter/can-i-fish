@@ -1,3 +1,4 @@
+import { logger } from "@trigger.dev/sdk/v3";
 import { LocationResponse, LocationWeatherWithDetailsResponse } from "./types";
 
 export class WillyWeatherService {
@@ -33,6 +34,8 @@ export class WillyWeatherService {
     }
 
     const data = await response.json();
+    logger.info("Weather raw response", { data });
+
     return LocationWeatherWithDetailsResponse.parse(data);
   }
 }
