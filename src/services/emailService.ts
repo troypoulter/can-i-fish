@@ -6,16 +6,31 @@ import type { ReactElement } from "react";
 
 export class EmailService {
   private resend: Resend;
+  private recipients: string[];
 
   constructor() {
     const apiKey = process.env.RESEND_API_KEY;
     if (!apiKey) {
       throw new Error("RESEND_API_KEY environment variable is not set");
     }
+
+    const recipientString = process.env.EMAIL_RECIPIENTS;
+    if (!recipientString) {
+      throw new Error("EMAIL_RECIPIENTS environment variable is not set");
+    }
+
+    // Split by comma and trim whitespace from each email
+    this.recipients = recipientString.split(",").map((email) => email.trim());
+    if (this.recipients.length === 0) {
+      throw new Error(
+        "EMAIL_RECIPIENTS must contain at least one email address"
+      );
+    }
+
     this.resend = new Resend(apiKey);
   }
 
-  async sendFishingReport(to: string, windows: FishingWindow[]) {
+  async sendFishingReport(windows: FishingWindow[]) {
     try {
       const hasPassingConditions = windows.some(
         (window) => window.overallScore === 100
@@ -23,8 +38,8 @@ export class EmailService {
       const statusEmoji = hasPassingConditions ? "✅" : "❌";
 
       const data = await this.resend.emails.send({
-        from: "Can I Fish? <onboarding@resend.dev>",
-        to: [to],
+        from: "Can I Fish? <noreply@noreply.troypoulter.com>",
+        to: this.recipients,
         subject: `${statusEmoji} Norah Head Fishing Report ${new Date().toLocaleString()}`,
         react: FishingReport({ windows }) as ReactElement,
       });

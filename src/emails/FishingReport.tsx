@@ -42,6 +42,18 @@ const styles = {
     borderBottom: "1px solid #dee2e6",
     whiteSpace: "nowrap" as const,
   },
+  tdPass: {
+    padding: "8px",
+    borderBottom: "1px solid #dee2e6",
+    whiteSpace: "nowrap" as const,
+    backgroundColor: "#e6ffe6",
+  },
+  tdPartial: {
+    padding: "8px",
+    borderBottom: "1px solid #dee2e6",
+    whiteSpace: "nowrap" as const,
+    backgroundColor: "#fff3cd",
+  },
   footer: {
     color: "#666",
     fontSize: "12px",
@@ -169,61 +181,71 @@ export default function FishingReport({ windows }: Props) {
               </tr>
             </thead>
             <tbody>
-              {windows.map((window) => (
-                <tr key={`${window.date}-${window.lowTide.value.time}`}>
-                  <td style={styles.td}>{formatDate(window.date)}</td>
-                  <td style={styles.td}>
-                    {formatTime(window.lowTide.value.time)}
-                  </td>
-                  <td style={styles.td}>
-                    {getStatusEmoji(
-                      window.overallScore === 100
-                        ? "pass"
-                        : window.overallScore >= 50
-                          ? "partial"
-                          : "fail"
-                    )}{" "}
-                    {window.overallScore.toFixed(0)}%
-                  </td>
-                  <td style={styles.td}>
-                    {getStatusEmoji(window.lowTide.condition.passed)}{" "}
-                    {window.lowTide.value.height}m
-                  </td>
-                  <td style={styles.td}>
-                    {getStatusEmoji(window.swell.height.condition.passed)}{" "}
-                    {window.swell.height.value}m
-                  </td>
-                  <td style={styles.td}>
-                    {getStatusEmoji(window.swell.period.condition.passed)}{" "}
-                    {window.swell.period.value}s
-                  </td>
-                  <td style={styles.td}>
-                    {getStatusEmoji(window.swell.direction.condition.passed)}{" "}
-                    {window.swell.direction.value}
-                  </td>
-                  <td style={styles.td}>
-                    {getStatusEmoji(
-                      window.daylight.afterSunrise.condition.passed
-                    )}{" "}
-                    {formatDaylightHours(
-                      window.daylight.afterSunrise.value.hours
-                    )}
-                  </td>
-                  <td style={styles.td}>
-                    {getStatusEmoji(
-                      window.daylight.beforeSunset.condition.passed
-                    )}{" "}
-                    {formatDaylightHours(
-                      window.daylight.beforeSunset.value.hours
-                    )}
-                  </td>
-                  <td style={styles.td}>
-                    {getStatusEmoji(window.weather.condition.passed)}{" "}
-                    {weatherEmojis[window.weather.condition.value as string] ||
-                      "❓"}
-                  </td>
-                </tr>
-              ))}
+              {windows.map((window) => {
+                const rowStyle =
+                  window.overallScore === 100
+                    ? styles.tdPass
+                    : window.overallScore >= 50
+                      ? styles.tdPartial
+                      : styles.td;
+
+                return (
+                  <tr key={`${window.date}-${window.lowTide.value.time}`}>
+                    <td style={rowStyle}>{formatDate(window.date)}</td>
+                    <td style={rowStyle}>
+                      {formatTime(window.lowTide.value.time)}
+                    </td>
+                    <td style={rowStyle}>
+                      {getStatusEmoji(
+                        window.overallScore === 100
+                          ? "pass"
+                          : window.overallScore >= 50
+                            ? "partial"
+                            : "fail"
+                      )}{" "}
+                      {window.overallScore.toFixed(0)}%
+                    </td>
+                    <td style={rowStyle}>
+                      {getStatusEmoji(window.lowTide.condition.passed)}{" "}
+                      {window.lowTide.value.height}m
+                    </td>
+                    <td style={rowStyle}>
+                      {getStatusEmoji(window.swell.height.condition.passed)}{" "}
+                      {window.swell.height.value}m
+                    </td>
+                    <td style={rowStyle}>
+                      {getStatusEmoji(window.swell.period.condition.passed)}{" "}
+                      {window.swell.period.value}s
+                    </td>
+                    <td style={rowStyle}>
+                      {getStatusEmoji(window.swell.direction.condition.passed)}{" "}
+                      {window.swell.direction.value}
+                    </td>
+                    <td style={rowStyle}>
+                      {getStatusEmoji(
+                        window.daylight.afterSunrise.condition.passed
+                      )}{" "}
+                      {formatDaylightHours(
+                        window.daylight.afterSunrise.value.hours
+                      )}
+                    </td>
+                    <td style={rowStyle}>
+                      {getStatusEmoji(
+                        window.daylight.beforeSunset.condition.passed
+                      )}{" "}
+                      {formatDaylightHours(
+                        window.daylight.beforeSunset.value.hours
+                      )}
+                    </td>
+                    <td style={rowStyle}>
+                      {getStatusEmoji(window.weather.condition.passed)}{" "}
+                      {weatherEmojis[
+                        window.weather.condition.value as string
+                      ] || "❓"}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </Container>

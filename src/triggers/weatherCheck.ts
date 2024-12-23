@@ -575,20 +575,11 @@ export const weatherCheckTask = task({
   maxDuration: 300,
   run: async (payload, { ctx }) => {
     const apiKey = process.env.WILLY_WEATHER_API_KEY;
-    const emailTo = process.env.EMAIL_TO;
 
     if (!apiKey) {
       logger.error("Missing WILLY_WEATHER_API_KEY environment variable");
       return {
         error: "Configuration error: Missing API key",
-        success: false,
-      };
-    }
-
-    if (!emailTo) {
-      logger.error("Missing EMAIL_TO environment variable");
-      return {
-        error: "Configuration error: Missing email recipient",
         success: false,
       };
     }
@@ -625,10 +616,7 @@ export const weatherCheckTask = task({
       const fishingWindows = processWeatherData(weatherData);
 
       // Send email report
-      const emailResult = await emailService.sendFishingReport(
-        emailTo,
-        fishingWindows
-      );
+      const emailResult = await emailService.sendFishingReport(fishingWindows);
 
       return {
         success: true,
