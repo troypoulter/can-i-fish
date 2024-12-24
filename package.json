@@ -10,7 +10,8 @@
     "format": "biome format --write .",
     "lint": "biome lint .",
     "check": "biome check --apply .",
-    "trigger": "npx trigger.dev@latest dev"
+    "trigger:dev": "npx trigger.dev@3.3.7 dev",
+    "trigger:deploy": "npx trigger.dev@3.3.7 deploy"
   },
   "keywords": [],
   "author": "",
