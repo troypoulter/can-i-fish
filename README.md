@@ -4,6 +4,12 @@
 
 An automated fishing conditions monitoring system for Norah Head, NSW. This service checks various conditions including tides, swell, and weather to determine optimal fishing windows and sends email reports.
 
+## Motivation
+
+This was a fun holiday project to build for my SIL who wanted to know when the best time to go fishing was at her favourite spot. I focused on making it as simple as possible to use and deploy and getting it done quickly.
+
+If you're reading through this and the code, I hope you find it useful!
+
 ## Features
 
 - Daily weather and conditions monitoring
