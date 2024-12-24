@@ -58,7 +58,7 @@ export class EmailService {
       const data = await this.resend.emails.send({
         from: "Can I Fish? <noreply@noreply.troypoulter.com>",
         to: this.recipients,
-        subject: `${statusEmoji} Norah Head 🐟 ${dateRange.start} - ${dateRange.end}`,
+        subject: `${statusEmoji} Norah Head 🐟 ${dateRange.start} - ${dateRange.end} ${process.env.NODE_ENV === "production" ? "" : new Date().toISOString()}`,
         react: FishingReport({ windows }) as ReactElement,
       });
 

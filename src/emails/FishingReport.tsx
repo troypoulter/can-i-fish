@@ -66,8 +66,14 @@ interface Props {
   windows: FishingWindow[];
 }
 
-const getStatusEmoji = (status: "pass" | "partial" | "fail") =>
-  status === "pass" ? "✅" : status === "partial" ? "⚠️" : "❌";
+const getStatusEmoji = (status: "pass" | "partial" | "fail" | "hard_fail") =>
+  status === "pass"
+    ? "✅"
+    : status === "partial"
+      ? "⚠️"
+      : status === "hard_fail"
+        ? "🛑"
+        : "❌";
 
 const formatDate = (dateStr: string) => {
   const date = new Date(dateStr);
@@ -266,9 +272,11 @@ export default function FishingReport({ windows }: Props) {
                       {getStatusEmoji(
                         window.overallScore === 100
                           ? "pass"
-                          : window.overallScore >= 50
-                            ? "partial"
-                            : "fail"
+                          : window.overallScore === 0
+                            ? "hard_fail"
+                            : window.overallScore >= 50
+                              ? "partial"
+                              : "fail"
                       )}{" "}
                       {window.overallScore.toFixed(0)}%
                     </td>

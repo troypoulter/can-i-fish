@@ -49,7 +49,6 @@ export const FISHING_CONDITIONS = {
   SWELL: {
     HEIGHT: {
       PASS_THRESHOLD: 1.0,
-      PARTIAL_THRESHOLD: 1.2,
     },
     PERIOD: {
       PASS_THRESHOLD: 6,
@@ -83,7 +82,7 @@ export const FISHING_CONDITIONS = {
 };
 
 interface ConditionStatus {
-  passed: "pass" | "partial" | "fail";
+  passed: "pass" | "partial" | "fail" | "hard_fail";
   value: number | string;
   threshold?: string;
   details?: string;
@@ -329,12 +328,9 @@ function processWeatherData(
               closestSwellEntry.height <=
               FISHING_CONDITIONS.SWELL.HEIGHT.PASS_THRESHOLD
                 ? "pass"
-                : closestSwellEntry.height <=
-                    FISHING_CONDITIONS.SWELL.HEIGHT.PARTIAL_THRESHOLD
-                  ? "partial"
-                  : "fail",
+                : "hard_fail",
             value: closestSwellEntry.height,
-            threshold: `Pass ≤${FISHING_CONDITIONS.SWELL.HEIGHT.PASS_THRESHOLD}m, Partial ≤${FISHING_CONDITIONS.SWELL.HEIGHT.PARTIAL_THRESHOLD}m`,
+            threshold: `Pass ≤${FISHING_CONDITIONS.SWELL.HEIGHT.PASS_THRESHOLD}m`,
             details: "Maximum allowable swell height",
           },
         },
@@ -383,7 +379,7 @@ function processWeatherData(
             passed:
               hoursAfterSunrise >= FISHING_CONDITIONS.MIN_HOURS_AFTER_SUNRISE
                 ? "pass"
-                : "fail",
+                : "hard_fail",
             value: `${lowTideTime.toLocaleTimeString("en-US", {
               hour: "2-digit",
               minute: "2-digit",
@@ -414,7 +410,7 @@ function processWeatherData(
             passed:
               hoursBeforeSunset >= FISHING_CONDITIONS.MIN_HOURS_BEFORE_SUNSET
                 ? "pass"
-                : "fail",
+                : "hard_fail",
             value: `${lowTideTime.toLocaleTimeString("en-US", {
               hour: "2-digit",
               minute: "2-digit",
@@ -458,18 +454,17 @@ function processWeatherData(
         { condition: swellMeasurement.height.condition, weight: 1 },
         { condition: swellMeasurement.period.condition, weight: 1 },
         { condition: swellMeasurement.direction.condition, weight: 1 },
-        { condition: daylightMeasurement.afterSunrise.condition, weight: 1 },
-        { condition: daylightMeasurement.beforeSunset.condition, weight: 1 },
         { condition: weatherMeasurement.condition, weight: 1 },
       ];
 
-      // Check if either daylight condition fails - if so, set overall score to 0
-      const hasDaylightFail =
-        daylightMeasurement.afterSunrise.condition.passed === "fail" ||
-        daylightMeasurement.beforeSunset.condition.passed === "fail";
+      // Check if there are any hard failures - if so, set overall score to 0
+      const hasHardFail =
+        daylightMeasurement.afterSunrise.condition.passed === "hard_fail" ||
+        daylightMeasurement.beforeSunset.condition.passed === "hard_fail" ||
+        swellMeasurement.height.condition.passed === "hard_fail";
 
       let overallScore = 0;
-      if (!hasDaylightFail) {
+      if (!hasHardFail) {
         const totalWeight = conditions.reduce(
           (sum, { weight }) => sum + weight,
           0
