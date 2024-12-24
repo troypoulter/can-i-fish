@@ -26,6 +26,7 @@ export class EmailService {
 	private resend: Resend;
 	private recipients: string[];
 	private alwaysSend: boolean;
+	private recipientNames: string;
 
 	constructor() {
 		const apiKey = process.env.RESEND_API_KEY;
@@ -38,6 +39,11 @@ export class EmailService {
 			throw new Error("EMAIL_RECIPIENTS environment variable is not set");
 		}
 
+		const recipientNames = process.env.EMAIL_RECIPIENT_NAMES;
+		if (!recipientNames) {
+			throw new Error("EMAIL_RECIPIENT_NAMES environment variable is not set");
+		}
+
 		// Split by comma and trim whitespace from each email
 		this.recipients = recipientString.split(",").map((email) => email.trim());
 		if (this.recipients.length === 0) {
@@ -45,6 +51,8 @@ export class EmailService {
 				"EMAIL_RECIPIENTS must contain at least one email address"
 			);
 		}
+
+		this.recipientNames = recipientNames;
 
 		// Parse ALWAYS_SEND environment variable
 		this.alwaysSend = process.env.ALWAYS_SEND?.toLowerCase() === "true";
@@ -90,7 +98,10 @@ export class EmailService {
 				from: "Can I Fish? <noreply@noreply.troypoulter.com>",
 				to: this.recipients,
 				subject: `${statusEmoji} Norah Head 🐟 ${dateRange.start} - ${dateRange.end} ${isLocalDevelopment ? `(TEST: ${new Date().toLocaleTimeString()})` : ""}`,
-				react: FishingReport({ windows }) as ReactElement,
+				react: FishingReport({
+					windows,
+					recipientNames: this.recipientNames,
+				}) as ReactElement,
 			});
 
 			logger.info("Email sent successfully", {

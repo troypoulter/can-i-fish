@@ -65,6 +65,7 @@ const styles = {
 
 interface Props {
 	windows: FishingWindow[];
+	recipientNames: string;
 }
 
 const getStatusEmoji = (status: "pass" | "partial" | "fail" | "hard_fail") =>
@@ -168,7 +169,7 @@ const passingPhrases = [
 
 const failingPhrases = [
 	"The fish are on vacation today! 🏖️",
-	"Time to practice your casting in the backyard instead! ���",
+	"Time to practice your casting in the backyard instead! 🎣",
 	"Netflix and chill might be a better option... 📺",
 	"The fish are having a union meeting! 👔",
 	"The fish are social distancing! 😷",
@@ -198,15 +199,15 @@ const failingPhrases = [
 	"The fish are having a mindfulness retreat! 🧘‍♂️",
 ];
 
-export default function FishingReport({ windows }: Props) {
+export default function FishingReport({ windows, recipientNames }: Props) {
 	const passingConditions = windows.filter(
 		(window) => window.overallScore >= FISHING_CONDITIONS.SCORING.PASS_THRESHOLD
 	).length;
 
 	const baseMessage =
 		passingConditions > 0
-			? `😀 Great news Fiona & Josh! There ${passingConditions === 1 ? "is a" : "are"} ${passingConditions} good fishing ${passingConditions === 1 ? "time" : "times"} coming up.`
-			: "😞 Bummer! No ideal fishing conditions this week Fiona & Josh, maybe next week!";
+			? `😀 Great news ${recipientNames}! There ${passingConditions === 1 ? "is a" : "are"} ${passingConditions} good fishing ${passingConditions === 1 ? "time" : "times"} coming up.`
+			: `😞 Bummer! No ideal fishing conditions this week ${recipientNames}, maybe next week!`;
 
 	const funPhrase =
 		passingConditions > 0

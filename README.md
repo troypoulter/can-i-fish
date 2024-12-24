@@ -47,6 +47,7 @@ npm install
 WILLY_WEATHER_API_KEY=your_willy_weather_api_key
 RESEND_API_KEY=your_resend_api_key
 EMAIL_RECIPIENTS=email1@example.com,email2@example.com
+EMAIL_RECIPIENT_NAMES=Rod & Coral  # Names that will appear in the email greeting
 ALWAYS_SEND=true  # Set to false to only send on Sundays or when conditions are good
 ```
 
