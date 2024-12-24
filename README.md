@@ -86,10 +86,28 @@ cron: {
 
 To run the service locally:
 
-1. Set up your Trigger.dev development environment
+1. Set up your [Trigger.dev](https://trigger.dev) development environment following their [documentation](https://trigger.dev/docs/documentation/quickstart)
 2. Start the development server:
 ```bash
 npm run trigger:dev
+```
+
+### Code Quality
+
+The project uses [Biome](https://biomejs.dev/) for code formatting and linting. You can run the following commands:
+
+```bash
+npm run format  # Format code
+npm run lint    # Lint code
+npm run check   # Format and lint
+```
+
+### Deployment
+
+To deploy to Trigger.dev:
+
+```bash
+npm run trigger:deploy
 ```
 
 ## License

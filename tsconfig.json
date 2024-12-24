@@ -1,16 +1,16 @@
 {
-  "compilerOptions": {
-    "target": "es2017",
-    "module": "commonjs",
-    "lib": ["es2017"],
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "jsx": "react",
-    "jsxFactory": "React.createElement",
-    "jsxFragmentFactory": "React.Fragment"
-  },
-  "include": ["src/**/*", "trigger.config.ts"],
-  "exclude": ["node_modules"]
+	"compilerOptions": {
+		"target": "es2017",
+		"module": "commonjs",
+		"lib": ["es2017"],
+		"strict": true,
+		"esModuleInterop": true,
+		"skipLibCheck": true,
+		"forceConsistentCasingInFileNames": true,
+		"jsx": "react",
+		"jsxFactory": "React.createElement",
+		"jsxFragmentFactory": "React.Fragment"
+	},
+	"include": ["src/**/*", "trigger.config.ts"],
+	"exclude": ["node_modules"]
 }
