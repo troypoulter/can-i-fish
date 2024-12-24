@@ -1,4 +1,4 @@
-import { logger, task } from "@trigger.dev/sdk/v3";
+import { logger, schedules, task } from "@trigger.dev/sdk/v3";
 import { WillyWeatherService } from "../services/willyWeatherAPI";
 import type { LocationWeatherWithDetailsResponse } from "../services/types";
 import type { z } from "zod";
@@ -598,9 +598,13 @@ const NORAH_HEAD = {
   lng: 151.57825,
 };
 
-export const weatherCheckTask = task({
+export const weatherCheckTask = schedules.task({
   id: "check-norah-head-weather",
   maxDuration: 300,
+  cron: {
+    pattern: "0 6 * * *", // Run at 6am every day
+    timezone: "Australia/Sydney", // Using Sydney timezone since Norah Head is in NSW
+  },
   run: async (payload, { ctx }) => {
     const apiKey = process.env.WILLY_WEATHER_API_KEY;
 
