@@ -1,5 +1,6 @@
 import { Resend } from "resend";
 import type { FishingWindow } from "../triggers/weatherCheck";
+import { FISHING_CONDITIONS } from "../triggers/weatherCheck";
 import FishingReport from "../emails/FishingReport";
 import { logger } from "@trigger.dev/sdk/v3";
 import type { ReactElement } from "react";
@@ -50,7 +51,8 @@ export class EmailService {
   async sendFishingReport(windows: FishingWindow[]) {
     try {
       const hasPassingConditions = windows.some(
-        (window) => window.overallScore === 100
+        (window) =>
+          window.overallScore >= FISHING_CONDITIONS.SCORING.PASS_THRESHOLD
       );
       const statusEmoji = hasPassingConditions ? "✅" : "❌";
       const dateRange = formatDateRange(windows);
@@ -58,7 +60,7 @@ export class EmailService {
       const data = await this.resend.emails.send({
         from: "Can I Fish? <noreply@noreply.troypoulter.com>",
         to: this.recipients,
-        subject: `${statusEmoji} Norah Head 🐟 ${dateRange.start} - ${dateRange.end} ${process.env.NODE_ENV === "production" ? "" : new Date().toISOString()}`,
+        subject: `${statusEmoji} Norah Head 🐟 ${dateRange.start} - ${dateRange.end} ${process.env.NODE_ENV === "production" ? "" : `(${new Date().toLocaleTimeString()})`}`,
         react: FishingReport({ windows }) as ReactElement,
       });
 

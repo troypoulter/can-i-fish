@@ -8,6 +8,7 @@ import {
   Preview,
 } from "@react-email/components";
 import type { FishingWindow } from "../triggers/weatherCheck";
+import { FISHING_CONDITIONS } from "../triggers/weatherCheck";
 import React from "react";
 
 const styles = {
@@ -184,7 +185,7 @@ const passingPhrases = [
 
 const failingPhrases = [
   "The fish are on vacation today! 🏖️",
-  "Time to practice your casting in the backyard instead! 🎯",
+  "Time to practice your casting in the backyard instead! ���",
   "Netflix and chill might be a better option... 📺",
   "The fish are having a union meeting! 👔",
   "The fish are social distancing! 😷",
@@ -216,7 +217,7 @@ const failingPhrases = [
 
 export default function FishingReport({ windows }: Props) {
   const passingConditions = windows.filter(
-    (window) => window.overallScore === 100
+    (window) => window.overallScore >= FISHING_CONDITIONS.SCORING.PASS_THRESHOLD
   ).length;
 
   const baseMessage =
@@ -256,9 +257,11 @@ export default function FishingReport({ windows }: Props) {
             <tbody>
               {windows.map((window) => {
                 const rowStyle =
-                  window.overallScore === 100
+                  window.overallScore >=
+                  FISHING_CONDITIONS.SCORING.PASS_THRESHOLD
                     ? styles.tdPass
-                    : window.overallScore >= 50
+                    : window.overallScore >=
+                        FISHING_CONDITIONS.SCORING.PARTIAL_THRESHOLD
                       ? styles.tdPartial
                       : styles.td;
 
@@ -270,11 +273,13 @@ export default function FishingReport({ windows }: Props) {
                     </td>
                     <td style={rowStyle}>
                       {getStatusEmoji(
-                        window.overallScore === 100
-                          ? "pass"
-                          : window.overallScore === 0
-                            ? "hard_fail"
-                            : window.overallScore >= 50
+                        window.overallScore === 0
+                          ? "hard_fail"
+                          : window.overallScore >=
+                              FISHING_CONDITIONS.SCORING.PASS_THRESHOLD
+                            ? "pass"
+                            : window.overallScore >=
+                                FISHING_CONDITIONS.SCORING.PARTIAL_THRESHOLD
                               ? "partial"
                               : "fail"
                       )}{" "}

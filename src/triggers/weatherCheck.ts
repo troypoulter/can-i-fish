@@ -42,6 +42,10 @@ export type WeatherPrecisCode = z.infer<typeof WeatherPrecisCode>;
 
 // Constants for fishing conditions
 export const FISHING_CONDITIONS = {
+  SCORING: {
+    PASS_THRESHOLD: 70,
+    PARTIAL_THRESHOLD: 40,
+  },
   TIDE: {
     PASS_THRESHOLD: 0.4,
     PARTIAL_THRESHOLD: 0.6,
@@ -120,101 +124,130 @@ export interface FishingWindow {
 }
 
 function logFishingWindowsSummary(fishingWindows: FishingWindow[]) {
-  const passThreshold = 100; // Only windows with 100% score are considered fully passed
-  const partialThreshold = 50; // Windows with 50% or more are considered partial passes
-
-  const passed = fishingWindows.filter((w) => w.overallScore === passThreshold);
+  const passed = fishingWindows.filter(
+    (w) => w.overallScore >= FISHING_CONDITIONS.SCORING.PASS_THRESHOLD
+  );
   const partial = fishingWindows.filter(
-    (w) => w.overallScore >= partialThreshold && w.overallScore < passThreshold
+    (w) =>
+      w.overallScore >= FISHING_CONDITIONS.SCORING.PARTIAL_THRESHOLD &&
+      w.overallScore < FISHING_CONDITIONS.SCORING.PASS_THRESHOLD
   );
   const failed = fishingWindows.filter(
-    (w) => w.overallScore < partialThreshold
+    (w) =>
+      w.overallScore < FISHING_CONDITIONS.SCORING.PARTIAL_THRESHOLD &&
+      w.overallScore > 0
   );
+  const hardFailed = fishingWindows.filter((w) => w.overallScore === 0);
 
   logger.info("\n=== Fishing Windows Summary ===", {
     total: fishingWindows.length,
     passed: passed.length,
     partial: partial.length,
     failed: failed.length,
+    hardFailed: hardFailed.length,
   });
 
   if (passed.length > 0) {
-    logger.info("\n✅ PASSED Windows:", {
-      windows: passed.map((w) => ({
-        date: w.date,
-        time: w.lowTide.value.time,
-        tide: `${w.lowTide.value.height}m`,
-        swell: `${w.swell.height.value}m ${w.swell.period.value}s ${w.swell.direction.value}`,
-        daylight: `${w.daylight.afterSunrise.value.hours.toFixed(1)}hrs after sunrise, ${w.daylight.beforeSunset.value.hours.toFixed(1)}hrs before sunset`,
-        weather: w.weather,
-      })),
-    });
+    logger.info(
+      `\n✅ PASSED Windows (${FISHING_CONDITIONS.SCORING.PASS_THRESHOLD}%+):`,
+      {
+        windows: passed.map((w) => ({
+          date: w.date,
+          score: `${w.overallScore.toFixed(1)}%`,
+          time: w.lowTide.value.time,
+          tide: `${w.lowTide.value.height}m`,
+          swell: `${w.swell.height.value}m ${w.swell.period.value}s ${w.swell.direction.value}`,
+          daylight: `${w.daylight.afterSunrise.value.hours.toFixed(1)}hrs after sunrise, ${w.daylight.beforeSunset.value.hours.toFixed(1)}hrs before sunset`,
+          weather: w.weather,
+        })),
+      }
+    );
   }
 
   if (partial.length > 0) {
-    logger.info("\n⚠️ PARTIAL Windows:", {
-      windows: partial.map((w) => ({
-        date: w.date,
-        score: `${w.overallScore.toFixed(1)}%`,
-        time: w.lowTide.value.time,
-        conditions: {
-          tide: {
-            status: w.lowTide.condition.passed,
-            value: `${w.lowTide.value.height}m`,
+    logger.info(
+      `\n⚠️ PARTIAL Windows (${FISHING_CONDITIONS.SCORING.PARTIAL_THRESHOLD}-${FISHING_CONDITIONS.SCORING.PASS_THRESHOLD - 1}%):`,
+      {
+        windows: partial.map((w) => ({
+          date: w.date,
+          score: `${w.overallScore.toFixed(1)}%`,
+          time: w.lowTide.value.time,
+          conditions: {
+            tide: {
+              status: w.lowTide.condition.passed,
+              value: `${w.lowTide.value.height}m`,
+            },
+            swell: {
+              height: {
+                status: w.swell.height.condition.passed,
+                value: `${w.swell.height.value}m`,
+              },
+              period: {
+                status: w.swell.period.condition.passed,
+                value: `${w.swell.period.value}s`,
+              },
+              direction: {
+                status: w.swell.direction.condition.passed,
+                value: w.swell.direction.value,
+              },
+            },
+            daylight: {
+              afterSunrise: {
+                status: w.daylight.afterSunrise.condition.passed,
+                value: `${w.daylight.afterSunrise.value.hours.toFixed(1)}hrs`,
+              },
+              beforeSunset: {
+                status: w.daylight.beforeSunset.condition.passed,
+                value: `${w.daylight.beforeSunset.value.hours.toFixed(1)}hrs`,
+              },
+            },
           },
-          swell: {
-            height: {
-              status: w.swell.height.condition.passed,
-              value: `${w.swell.height.value}m`,
-            },
-            period: {
-              status: w.swell.period.condition.passed,
-              value: `${w.swell.period.value}s`,
-            },
-            direction: {
-              status: w.swell.direction.condition.passed,
-              value: w.swell.direction.value,
-            },
-          },
-          daylight: {
-            afterSunrise: {
-              status: w.daylight.afterSunrise.condition.passed,
-              value: `${w.daylight.afterSunrise.value.hours.toFixed(1)}hrs`,
-            },
-            beforeSunset: {
-              status: w.daylight.beforeSunset.condition.passed,
-              value: `${w.daylight.beforeSunset.value.hours.toFixed(1)}hrs`,
-            },
-          },
-        },
-      })),
-    });
+        })),
+      }
+    );
   }
 
   if (failed.length > 0) {
-    logger.info("\n❌ FAILED Windows:", {
-      windows: failed.map((w) => ({
+    logger.info(
+      `\n❌ FAILED Windows (1-${FISHING_CONDITIONS.SCORING.PARTIAL_THRESHOLD - 1}%):`,
+      {
+        windows: failed.map((w) => ({
+          date: w.date,
+          score: `${w.overallScore.toFixed(1)}%`,
+          time: w.lowTide.value.time,
+          failedConditions: [
+            w.lowTide.condition.passed === "fail"
+              ? `Tide: ${w.lowTide.value.height}m`
+              : null,
+            w.swell.height.condition.passed === "fail"
+              ? `Swell Height: ${w.swell.height.value}m`
+              : null,
+            w.swell.period.condition.passed === "fail"
+              ? `Swell Period: ${w.swell.period.value}s`
+              : null,
+            w.swell.direction.condition.passed === "fail"
+              ? `Swell Direction: ${w.swell.direction.value}`
+              : null,
+          ].filter(Boolean),
+        })),
+      }
+    );
+  }
+
+  if (hardFailed.length > 0) {
+    logger.info("\n🛑 HARD FAILED Windows:", {
+      windows: hardFailed.map((w) => ({
         date: w.date,
-        score: `${w.overallScore.toFixed(1)}%`,
         time: w.lowTide.value.time,
-        failedConditions: [
-          w.lowTide.condition.passed === "fail"
-            ? `Tide: ${w.lowTide.value.height}m`
+        hardFailConditions: [
+          w.daylight.afterSunrise.condition.passed === "hard_fail"
+            ? `Before Sunrise: ${w.daylight.afterSunrise.value.hours.toFixed(1)}hrs`
             : null,
-          w.swell.height.condition.passed === "fail"
+          w.daylight.beforeSunset.condition.passed === "hard_fail"
+            ? `After Sunset: ${w.daylight.beforeSunset.value.hours.toFixed(1)}hrs`
+            : null,
+          w.swell.height.condition.passed === "hard_fail"
             ? `Swell Height: ${w.swell.height.value}m`
-            : null,
-          w.swell.period.condition.passed === "fail"
-            ? `Swell Period: ${w.swell.period.value}s`
-            : null,
-          w.swell.direction.condition.passed === "fail"
-            ? `Swell Direction: ${w.swell.direction.value}`
-            : null,
-          w.daylight.afterSunrise.condition.passed === "fail"
-            ? `After Sunrise: ${w.daylight.afterSunrise.value.hours.toFixed(1)}hrs`
-            : null,
-          w.daylight.beforeSunset.condition.passed === "fail"
-            ? `Before Sunset: ${w.daylight.beforeSunset.value.hours.toFixed(1)}hrs`
             : null,
         ].filter(Boolean),
       })),
