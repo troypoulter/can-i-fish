@@ -10,6 +10,8 @@ This was a fun holiday project to build for my SIL who wanted to know when the b
 
 If you're reading through this and the code, I hope you find it useful!
 
+![Example Email Report](assets/can-i-fish-email.png)
+
 ## Features
 
 - Daily weather and conditions monitoring
