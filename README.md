@@ -1,5 +1,7 @@
 # Can I Fish? 🐟
 
+[![Checked with Biome](https://img.shields.io/badge/Checked_with-Biome-60a5fa?style=flat&logo=biome)](https://biomejs.dev)
+
 An automated fishing conditions monitoring system for Norah Head, NSW. This service checks various conditions including tides, swell, and weather to determine optimal fishing windows and sends email reports.
 
 ## Features
@@ -94,12 +96,10 @@ npm run trigger:dev
 
 ### Code Quality
 
-The project uses [Biome](https://biomejs.dev/) for code formatting and linting. You can run the following commands:
+The project uses [Biome](https://biomejs.dev/) for code formatting and linting. You can run the following command to auto-fix your code:
 
 ```bash
-npm run format  # Format code
-npm run lint    # Lint code
-npm run check   # Format and lint
+npm run biome
 ```
 
 ### Deployment
