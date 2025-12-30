@@ -8,7 +8,7 @@
 		"ts-node": "^10.9.2",
 		"zod": "^3.25.76"
 	},
-	"description": "An automated fishing conditions monitoring system for Norah Head, NSW",
+	"description": "An automated fishing conditions monitoring tool for Norah Head, NSW",
 	"devDependencies": {
 		"@biomejs/biome": "^1.9.4",
 		"@trigger.dev/build": "4.3.1",
