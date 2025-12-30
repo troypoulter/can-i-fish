@@ -1,30 +1,36 @@
 {
-	"name": "can-i-fish",
-	"version": "1.0.0",
-	"description": "An automated fishing conditions monitoring system for Norah Head, NSW",
-	"main": "index.js",
-	"scripts": {
-		"biome": "biome check --write .",
-		"trigger:dev": "npx trigger.dev@3.3.7 dev",
-		"trigger:deploy": "npx trigger.dev@3.3.7 deploy"
-	},
-	"keywords": ["fishing", "weather", "automation", "trigger.dev", "norah-head"],
-	"author": "Troy Poulter",
-	"license": "MIT",
-	"dependencies": {
-		"@react-email/components": "^0.0.31",
-		"@trigger.dev/sdk": "3.3.7",
-		"dotenv": "^16.4.5",
-		"resend": "^4.0.1",
-		"ts-node": "^10.9.2",
-		"zod": "^3.23.8"
-	},
-	"devDependencies": {
-		"@biomejs/biome": "^1.9.4",
-		"@trigger.dev/build": "3.3.7",
-		"@types/node": "^22.9.0",
-		"@types/react": "^19.0.2",
-		"react": "^19.0.0",
-		"typescript": "^5.6.3"
-	}
+  "author": "Troy Poulter",
+  "dependencies": {
+    "@react-email/components": "^0.0.31",
+    "@trigger.dev/sdk": "4.3.1",
+    "dotenv": "^16.4.5",
+    "resend": "^4.0.1",
+    "ts-node": "^10.9.2",
+    "zod": "^3.23.8"
+  },
+  "description": "An automated fishing conditions monitoring system for Norah Head, NSW",
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@trigger.dev/build": "4.3.1",
+    "@types/node": "^22.9.0",
+    "@types/react": "^19.0.2",
+    "react": "^19.0.0",
+    "typescript": "^5.6.3"
+  },
+  "keywords": [
+    "fishing",
+    "weather",
+    "automation",
+    "trigger.dev",
+    "norah-head"
+  ],
+  "license": "MIT",
+  "main": "index.js",
+  "name": "can-i-fish",
+  "scripts": {
+    "biome": "biome check --write .",
+    "trigger:deploy": "npx trigger.dev@latest deploy",
+    "trigger:dev": "npx trigger.dev@latest dev"
+  },
+  "version": "1.0.0"
 }
