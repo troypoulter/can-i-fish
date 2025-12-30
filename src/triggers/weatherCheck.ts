@@ -1,4 +1,4 @@
-import { logger, schedules, task } from "@trigger.dev/sdk/v3";
+import { logger, schedules, task } from "@trigger.dev/sdk";
 import type { z } from "zod";
 import { z as zod } from "zod";
 import { EmailService } from "../services/emailService";
